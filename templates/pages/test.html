@@ -1,0 +1,18 @@
+{{ define "pages/test.html" }}
+
+{{ template "base/header.html" }}
+
+<h1>{{.PageTitle}}</h1>
+<ul>
+    {{range .Todos}}
+    {{if .Done}}
+    <li class="done">{{.Title}}</li>
+    {{else}}
+    <li>{{.Title}}</li>
+    {{end}}
+    {{end}}
+</ul>
+
+{{ template "base/footer.html" }}
+
+{{ end }}

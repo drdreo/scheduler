@@ -1,0 +1,9 @@
+{
+    "tasks": [
+        {
+            "active": true,
+            "name": "Take a break",
+            "interval": "every 2h"
+        }
+    ]
+}
