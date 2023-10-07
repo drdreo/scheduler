@@ -40,6 +40,12 @@ func main() {
 
 	router.LoadHTMLGlob("templates/**/*.html")
 
+	//	router.GET("/", func(c *gin.Context) {
+	//		c.Redirect(http.StatusMovedPermanently, "/test")
+	//	})
+	router.GET("/", func(ctx *gin.Context) {
+		ctx.HTML(http.StatusOK, "index.tpl", nil)
+	})
 	router.GET("/test", func(c *gin.Context) {
 
 		data := TodoPageData{
@@ -53,12 +59,19 @@ func main() {
 	})
 
 	router.GET("/data", dataHandler)
-
+	router.POST("/add-task", addTaskHandler)
+	router.GET("/alerts", alertsHandler) // https://blog.stackademic.com/real-time-communication-with-golang-and-server-sent-events-sse-a-practical-tutorial-1094b37e17f5
+	testAsync()
 	err := router.Run("localhost:3000")
 	if err != nil {
 		panic(err)
 	}
 
+}
+
+func addTaskHandler(c *gin.Context) {
+	name := c.PostForm("task-name")
+	c.HTML(http.StatusOK, "response/add-task.html", gin.H{"Name": name})
 }
 
 func dataHandler(c *gin.Context) {
@@ -75,8 +88,49 @@ func dataHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, &scheduler)
 }
 
+func alertsHandler(c *gin.Context) {
+	noOfExecution := 10
+	progress := 0
+	for progress <= noOfExecution {
+		progressPercentage := float64(progress) / float64(noOfExecution) * 100
+
+		c.SSEvent("alerts", gin.H{
+			"currentTask":        progress,
+			"progressPercentage": progressPercentage,
+			"noOftasks":          noOfExecution,
+			"completed":          false,
+		})
+
+		c.Writer.Flush() // Flush the response to ensure the data is sent immediately
+
+		progress += 1
+		fmt.Println("Alert: ", progress)
+		time.Sleep(2 * time.Second)
+	}
+
+	c.SSEvent("alerts", gin.H{
+		"completed":          true,
+		"progressPercentage": 100,
+	})
+
+	c.Writer.Flush() // Flush the response to ensure the data is sent immediately
+}
+
+func testAsync() {
+	noOfExecution := 10
+	progress := 0
+	go func() {
+		for progress <= noOfExecution {
+			progress += 1
+			fmt.Println("Progress: ", progress)
+			time.Sleep(2 * time.Second)
+		}
+	}()
+
+}
+
 func testInterval() {
-	intervalStr := "every 36s"
+	intervalStr := "every 6s"
 	duration, err := parseDuration(intervalStr)
 	if err != nil {
 		panic(err)
