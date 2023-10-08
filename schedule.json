@@ -1,9 +1,34 @@
 {
     "tasks": [
         {
-            "active": true,
-            "name": "Take a break",
-            "interval": "every 2h"
+            "Name": "Take a break",
+            "Active": true,
+            "Schedule": "every 2h"
+        },
+        {
+            "Name": "Get water",
+            "Active": true,
+            "Schedule": "every 1h"
+        },
+        {
+            "Name": "Stir pot",
+            "Active": false,
+            "Schedule": "in 2h"
+        },
+        {
+            "Name": "Try more reading",
+            "Active": true,
+            "Schedule": ""
+        },
+        {
+            "Name": "Lets go",
+            "Active": true,
+            "Schedule": ""
+        },
+        {
+            "Name": "Binder",
+            "Active": true,
+            "Schedule": "every 1d"
         }
     ]
 }

@@ -1,0 +1,10 @@
+{{ define "pages/tasks" }}
+{{ template "base/header" }}
+
+
+<h1>All Tasks</h1>
+{{ template "tasks/list" .}}
+{{ template "tasks/form" }}
+
+{{ template "base/footer" }}
+{{ end }}

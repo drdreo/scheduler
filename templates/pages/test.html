@@ -1,6 +1,5 @@
 {{ define "pages/test.html" }}
-
-{{ template "base/header.html" }}
+{{ template "base/header" }}
 
 <div hx-ext="sse" sse-connect="/alerts" sse-swap="alerts">SSE ALERTS</div>
 
@@ -16,14 +15,18 @@
     {{ end }}
 </ul>
 
-<form hx-post="/add-task" hx-swap="outerHtml">
-    <div>
+<form hx-post="/add-task" hx-swap="outerHtml" autocomplete="off">
+    <div class="form-input">
         <label for="task-name">Name</label>
-        <input id="task-name" name="task-name"/>
+        <input id="task-name" name="task-name"  role="presentation" autocomplete="off"/>
+    </div>
+    <div class="form-input">
+        <label for="task-duration">Duration ('every 3h' or 'in 15min')</label>
+        <input id="task-duration" name="task-duration"  role="presentation" autocomplete="off"/>
     </div>
 
     <button type="submit">Submit</button>
 </form>
-{{ template "base/footer.html" }}
 
+{{ template "base/footer" }}
 {{ end }}
