@@ -1,6 +1,6 @@
 module scheduler
 
-go 1.21.2
+go 1.18
 
 require github.com/gin-gonic/gin v1.9.1
 
