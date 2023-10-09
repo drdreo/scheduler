@@ -14,6 +14,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func getPort() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "localhost:3000"
+	} else {
+		port = ":" + port
+	}
+
+	return port
+}
+
 func main() {
 	fmt.Println("main running... ")
 	router := gin.Default()
@@ -34,7 +45,7 @@ func main() {
 
 	router.GET("/data", dataHandler)
 	router.GET("/alerts", alertsHandler) // https://blog.stackademic.com/real-time-communication-with-golang-and-server-sent-events-sse-a-practical-tutorial-1094b37e17f5
-	err := router.Run("localhost:3000")
+	err := router.Run(getPort())
 	if err != nil {
 		panic(err)
 	}
