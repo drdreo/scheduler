@@ -1,13 +1,20 @@
 package models
 
+import "time"
+
 type TasksPageData struct {
 	Tasks []Task
 }
 
+type TasksUpdateData struct {
+	Tasks []Task
+}
+
 type Task struct {
-	Name     string
-	Active   bool
-	Schedule string
+	Name          string
+	Active        bool
+	Schedule      string
+	RemainingTime *time.Duration
 }
 
 type NewTaskFormData struct {

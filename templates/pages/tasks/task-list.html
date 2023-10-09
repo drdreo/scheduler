@@ -5,7 +5,7 @@
     {{ if not .Active }}
     <li class="inactive">{{.Name}}</li>
     {{ else }}
-    <li>{{.Name}} - {{.Schedule}} </li>
+    <li>{{.Name}} - {{.Schedule}} <br> in {{.RemainingTime}}</li>
     {{ end }}
     {{ end }}
 </ul>

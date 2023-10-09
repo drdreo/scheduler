@@ -3,7 +3,9 @@
 
 
 <h1>All Tasks</h1>
-{{ template "tasks/list" .}}
+<div hx-ext="sse" sse-connect="/tasks-update" sse-swap="tasks-update">
+    {{ template "tasks/list" .}}
+</div>
 {{ template "tasks/form" }}
 
 {{ template "base/footer" }}

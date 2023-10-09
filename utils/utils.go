@@ -59,3 +59,14 @@ func ParseJSONFile(filePath string, result interface{}) error {
 
 	return nil
 }
+
+func CalculateRemainingTime(startedTime time.Time, duration time.Duration) time.Duration {
+	elapsed := time.Since(startedTime)
+	remaining := duration - elapsed
+
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	return remaining
+}

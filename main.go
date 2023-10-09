@@ -9,7 +9,6 @@ import (
 	"scheduler/controllers"
 	"scheduler/models"
 	"scheduler/utils"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,12 +38,12 @@ func main() {
 	// 	ctx.HTML(http.StatusOK, "index.tpl", nil)
 	// })
 
-	taskController := controllers.NewTaskController()
+	taskController := controllers.NewTaskController(templates)
 	router.GET("/tasks", taskController.GetTasks)
 	router.POST("/tasks/new", taskController.NewTask)
+	router.GET("/tasks-update", taskController.TasksUpdate) // https://blog.stackademic.com/real-time-communication-with-golang-and-server-sent-events-sse-a-practical-tutorial-1094b37e17f5
 
 	router.GET("/data", dataHandler)
-	router.GET("/alerts", alertsHandler) // https://blog.stackademic.com/real-time-communication-with-golang-and-server-sent-events-sse-a-practical-tutorial-1094b37e17f5
 	err := router.Run(getPort())
 	if err != nil {
 		panic(err)
@@ -86,34 +85,6 @@ func dataHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, &scheduler)
-}
-
-func alertsHandler(c *gin.Context) {
-	noOfExecution := 10
-	progress := 0
-	for progress <= noOfExecution {
-		progressPercentage := float64(progress) / float64(noOfExecution) * 100
-
-		c.SSEvent("alerts", gin.H{
-			"currentTask":        progress,
-			"progressPercentage": progressPercentage,
-			"noOftasks":          noOfExecution,
-			"completed":          false,
-		})
-
-		c.Writer.Flush() // Flush the response to ensure the data is sent immediately
-
-		progress += 1
-		fmt.Println("Alert: ", progress)
-		time.Sleep(2 * time.Second)
-	}
-
-	c.SSEvent("alerts", gin.H{
-		"completed":          true,
-		"progressPercentage": 100,
-	})
-
-	c.Writer.Flush() // Flush the response to ensure the data is sent immediately
 }
 
 //func sendMessageToClients() {
