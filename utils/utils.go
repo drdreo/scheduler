@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -34,14 +35,14 @@ func ParseDuration(input string) (time.Duration, error) {
 
 	unit := strings.ToLower(matches[2])
 	switch unit {
-	case "ms", "millisecond", "milliseconds":
-		return time.Duration(numericValue) * time.Millisecond, nil
 	case "s", "sec", "second", "seconds":
 		return time.Duration(numericValue) * time.Second, nil
 	case "m", "min", "minute", "minutes":
 		return time.Duration(numericValue) * time.Minute, nil
 	case "h", "hr", "hour", "hours":
 		return time.Duration(numericValue) * time.Hour, nil
+	case "d", "days":
+		return time.Duration(numericValue) * time.Hour * 24, nil
 	default:
 		return 0, fmt.Errorf("invalid time unit")
 	}
@@ -69,4 +70,18 @@ func CalculateRemainingTime(startedTime time.Time, duration time.Duration) time.
 	}
 
 	return remaining
+}
+
+func Uuid() (uuid string) {
+
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+
+	uuid = fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+
+	return
 }

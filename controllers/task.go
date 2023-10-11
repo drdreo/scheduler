@@ -34,9 +34,20 @@ func NewTaskController(templates []string) *TaskController {
 
 func (tc *TaskController) GetTasks(c *gin.Context) {
 	tasks := readTaskData().Tasks
+
+	for i := range tasks {
+		taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
+		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
+		tasks[i].RemainingTime = &remainingTime
+	}
+
 	c.HTML(http.StatusOK, "pages/tasks", models.TasksPageData{
 		Tasks: tasks,
 	})
+}
+
+func (tc *TaskController) GetNewTaskForm(c *gin.Context) {
+	c.HTML(http.StatusOK, "tasks/new-form", gin.H{})
 }
 
 func (tc *TaskController) NewTask(c *gin.Context) {
@@ -45,13 +56,19 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 		return
 	}
 
+	_, err := utils.ParseDuration(formData.Schedule)
+	if err != nil {
+		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Error": "FAILED TO PARSE SCHEDULE"})
+		return
+	}
+
 	scheduler := readTaskData()
-	newTask := models.Task{Name: formData.Name, Schedule: formData.Schedule, Active: true}
+	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule, Active: false}
 	scheduler.Tasks = append(scheduler.Tasks, newTask)
 
-	err := writeTaskData(&scheduler)
+	err = writeTaskData(&scheduler)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "response/new-task.html", gin.H{"Name": "FAILED TO CREATE TASK"})
+		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"NaErrorme": "FAILED TO CREATE TASK"})
 		return
 	}
 	c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Name": formData.Name})
@@ -67,7 +84,7 @@ func (tc *TaskController) TasksUpdate(c *gin.Context) {
 			tasks[i].RemainingTime = &remainingTime
 		}
 
-		taskListTpl, _ := renderTemplate(c, tc.template, "tasks/list", models.TasksUpdateData{
+		taskListTpl, _ := renderTemplate(c, tc.template, "tasks/table-body", models.TasksUpdateData{
 			Tasks: tasks,
 		})
 
@@ -77,6 +94,65 @@ func (tc *TaskController) TasksUpdate(c *gin.Context) {
 
 		time.Sleep(1 * time.Second)
 	}
+}
+
+func (tc *TaskController) TasksActivate(c *gin.Context) {
+	formData := &models.ActivateTaskFormData{}
+	if err := c.Bind(formData); err != nil {
+		return
+	}
+
+	scheduler := readTaskData()
+	tasks := scheduler.Tasks
+
+	for i := range tasks {
+		taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
+		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
+		tasks[i].RemainingTime = &remainingTime
+
+		for _, id := range formData.TaskIds {
+			if id == tasks[i].Id {
+				tasks[i].Active = true
+			}
+		}
+	}
+
+	scheduler.Tasks = tasks
+	writeTaskData(&scheduler)
+
+	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
+		Tasks: tasks,
+	})
+}
+
+func (tc *TaskController) TasksDeactivate(c *gin.Context) {
+	formData := &models.ActivateTaskFormData{}
+	if err := c.Bind(formData); err != nil {
+		return
+	}
+
+	scheduler := readTaskData()
+	tasks := scheduler.Tasks
+
+	for i := range tasks {
+		taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
+		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
+		tasks[i].RemainingTime = &remainingTime
+
+		for _, id := range formData.TaskIds {
+			if id == tasks[i].Id {
+				tasks[i].Active = false
+			}
+		}
+	}
+
+	scheduler.Tasks = tasks
+
+	writeTaskData(&scheduler)
+
+	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
+		Tasks: tasks,
+	})
 }
 
 func readTaskData() models.Scheduler {

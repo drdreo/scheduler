@@ -11,6 +11,7 @@ type TasksUpdateData struct {
 }
 
 type Task struct {
+	Id          string
 	Name          string
 	Active        bool
 	Schedule      string
@@ -20,4 +21,8 @@ type Task struct {
 type NewTaskFormData struct {
 	Name     string `form:"task-name" validate:"required"`
 	Schedule string `form:"task-schedule" validate:"required"`
+}
+
+type ActivateTaskFormData struct {
+	TaskIds []string `form:"task-ids" validate:"required"`
 }

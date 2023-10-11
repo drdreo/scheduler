@@ -40,8 +40,11 @@ func main() {
 
 	taskController := controllers.NewTaskController(templates)
 	router.GET("/tasks", taskController.GetTasks)
+	router.GET("/tasks/new", taskController.GetNewTaskForm)
 	router.POST("/tasks/new", taskController.NewTask)
 	router.GET("/tasks-update", taskController.TasksUpdate) // https://blog.stackademic.com/real-time-communication-with-golang-and-server-sent-events-sse-a-practical-tutorial-1094b37e17f5
+	router.PUT("/tasks/activate", taskController.TasksActivate)
+	router.PUT("/tasks/deactivate", taskController.TasksDeactivate)
 
 	router.GET("/data", dataHandler)
 	err := router.Run(getPort())

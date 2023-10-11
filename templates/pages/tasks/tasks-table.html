@@ -1,0 +1,24 @@
+{{ define "tasks/table" }}
+
+<form id="tasks-form">
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Schedule2</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="tasks-body">
+            {{ template "tasks/table-body" .}}
+        </tbody>
+    </table>
+</form>
+
+<div hx-include="#tasks-form" hx-target="#tasks-body">
+    <button class="btn" hx-put="/tasks/activate">Activate</button>
+    <button class="btn" hx-put="/tasks/deactivate">Deactivate</button>
+</div>
+
+{{ end }}

@@ -1,34 +1,74 @@
 {
     "tasks": [
         {
+            "Id": "123123",
             "Name": "Take a break",
             "Active": true,
-            "Schedule": "every 2h"
+            "Schedule": "every 2h",
+            "RemainingTime": 6470538601300
         },
         {
+            "Id": "asdas",
             "Name": "Get water",
             "Active": true,
-            "Schedule": "every 1h"
+            "Schedule": "every 1h",
+            "RemainingTime": 2870538601300
         },
         {
+            "Id": "asdasdasdas",
             "Name": "Stir pot",
             "Active": false,
-            "Schedule": "in 2h"
+            "Schedule": "in 2h",
+            "RemainingTime": 0
         },
         {
+            "Id": "harahar",
             "Name": "Try more reading",
-            "Active": true,
-            "Schedule": ""
+            "Active": false,
+            "Schedule": "",
+            "RemainingTime": 0
         },
         {
+            "Id": "sarsar",
             "Name": "Lets go",
-            "Active": true,
-            "Schedule": ""
+            "Active": false,
+            "Schedule": "",
+            "RemainingTime": 0
         },
         {
+            "Id": "dooof",
             "Name": "Binder",
             "Active": true,
-            "Schedule": "every 1d"
+            "Schedule": "every 1d",
+            "RemainingTime": 0
+        },
+        {
+            "Id": "B489C5A7-3AE8-31B8-DF10-AD6ECFF235BF",
+            "Name": "lydia",
+            "Active": true,
+            "Schedule": "now",
+            "RemainingTime": 0
+        },
+        {
+            "Id": "92E84A81-B14B-3FB6-0D85-0B6A0E4C172F",
+            "Name": "asd",
+            "Active": false,
+            "Schedule": "every 15min",
+            "RemainingTime": null
+        },
+        {
+            "Id": "B5208A7A-0C03-651A-1456-2C47846E590B",
+            "Name": "asdasd",
+            "Active": false,
+            "Schedule": "every 30s",
+            "RemainingTime": null
+        },
+        {
+            "Id": "2C63DDF6-30ED-9CBB-71AC-D3D14981E8C8",
+            "Name": "asd",
+            "Active": false,
+            "Schedule": "every 30s",
+            "RemainingTime": null
         }
     ]
 }

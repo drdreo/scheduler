@@ -1,0 +1,16 @@
+{{ define "tasks/table-body" }}
+
+
+{{ range .Tasks }}
+<tr class="">
+    <td><input type='checkbox' name='task-ids' value='{{.Id}}'></td>
+    <td>{{.Name}}</td>
+    <td>{{.Schedule}}</td>
+    {{ if .Active }}
+    <td>in {{.RemainingTime}}</td>
+    {{ else }}
+    <td>Inactive</td>
+    {{end}}
+</tr>
+{{end}}
+{{end}}
