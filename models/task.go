@@ -3,15 +3,15 @@ package models
 import "time"
 
 type TasksPageData struct {
-	Tasks []Task
+	Tasks []*Task
 }
 
 type TasksUpdateData struct {
-	Tasks []Task
+	Tasks []*Task
 }
 
 type Task struct {
-	Id          string
+	Id            string
 	Name          string
 	Active        bool
 	Schedule      string

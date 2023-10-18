@@ -63,9 +63,9 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 
 	scheduler := readSchedulerData()
 	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule, Active: false}
-	scheduler.Tasks = append(scheduler.Tasks, newTask)
+	scheduler.Tasks = append(scheduler.Tasks, &newTask)
 
-	err = writeSchedulerData(&scheduler)
+	err = writeSchedulerData(scheduler)
 	if err != nil {
 		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"NaErrorme": "FAILED TO CREATE TASK"})
 		return
@@ -102,9 +102,8 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 	}
 
 	scheduler := readSchedulerData()
-	tasks := scheduler.Tasks
 
-	for _, task := range tasks {
+	for _, task := range scheduler.Tasks {
 		taskDuration, _ := utils.ParseDuration(task.Schedule)
 		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
 		task.RemainingTime = &remainingTime
@@ -116,13 +115,12 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 		}
 	}
 
-	scheduler.Tasks = tasks
-	err := writeSchedulerData(&scheduler)
+	err := writeSchedulerData(scheduler)
 	if err != nil {
-		log.Println("Warning: Could not write task data")
+		log.Fatal("Could not write scheduler data")
 	}
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
-		Tasks: tasks,
+		Tasks: scheduler.Tasks,
 	})
 }
 
@@ -133,41 +131,40 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 	}
 
 	scheduler := readSchedulerData()
-	tasks := scheduler.Tasks
 
-	for i := range tasks {
-		taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
+	for _, task := range scheduler.Tasks {
+		taskDuration, _ := utils.ParseDuration(task.Schedule)
 		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
-		tasks[i].RemainingTime = &remainingTime
+		task.RemainingTime = &remainingTime
 
 		for _, id := range formData.TaskIds {
-			if id == tasks[i].Id {
-				tasks[i].Active = false
+			if id == task.Id {
+				task.Active = false
 			}
 		}
 	}
 
-	scheduler.Tasks = tasks
-
-	writeSchedulerData(&scheduler)
+	err := writeSchedulerData(scheduler)
+	if err != nil {
+		log.Println("Warning: Could not write scheduler data")
+	}
 
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
-		Tasks: tasks,
+		Tasks: scheduler.Tasks,
 	})
 }
 
-func readSchedulerData() models.Scheduler {
+func readSchedulerData() *models.Scheduler {
 	var scheduler models.Scheduler
 
 	if err := utils.ParseJSONFile("schedule.json", &scheduler); err != nil {
 		log.Fatal(err)
-		// c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read JSON file"})
 	}
 
-	return scheduler
+	return &scheduler
 }
 
-func getTasks() []models.Task {
+func getTasks() []*models.Task {
 	tasks := readSchedulerData().Tasks
 	return tasks
 }
