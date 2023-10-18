@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -21,19 +22,26 @@ func TestInterval() {
 }
 
 func ParseDuration(input string) (time.Duration, error) {
-	regex := regexp.MustCompile(`^every (\d+)([a-zA-Z]+)$`)
-	matches := regex.FindStringSubmatch(strings.ToLower(input))
+	pattern := regexp.MustCompile(`^(every|in|at) (\d+)([a-zA-Z]+|\d{2}:\d{2})$`)
+	matches := pattern.FindStringSubmatch(strings.ToLower(input))
 
-	if len(matches) != 3 {
-		return 0, fmt.Errorf("invalid duration format - `every <interval>`")
+	if len(matches) != 4 {
+		err := fmt.Errorf("invalid duration format, found <%s>, allowed <every|in|at>", input)
+		log.Print(err)
+		return 0, err
 	}
 
-	numericValue, err := strconv.Atoi(matches[1])
+	//	command := matches[1]
+
+	numericValue, err := strconv.Atoi(matches[2])
 	if err != nil {
-		return 0, fmt.Errorf("invalid <interval> value")
+		err := fmt.Errorf("invalid <interval> value")
+		log.Print(err)
+		return 0, err
 	}
 
-	unit := strings.ToLower(matches[2])
+	// TODO: add at syntax
+	unit := strings.ToLower(matches[3])
 	switch unit {
 	case "s", "sec", "second", "seconds":
 		return time.Duration(numericValue) * time.Second, nil
@@ -44,7 +52,9 @@ func ParseDuration(input string) (time.Duration, error) {
 	case "d", "days":
 		return time.Duration(numericValue) * time.Hour * 24, nil
 	default:
-		return 0, fmt.Errorf("invalid time unit")
+		err := fmt.Errorf("invalid time unit")
+		log.Print(err)
+		return 0, err
 	}
 }
 
@@ -61,15 +71,18 @@ func ParseJSONFile(filePath string, result interface{}) error {
 	return nil
 }
 
-func CalculateRemainingTime(startedTime time.Time, duration time.Duration) time.Duration {
-	elapsed := time.Since(startedTime)
+func CalculateRemainingTime(startedTime *time.Time, duration time.Duration) *time.Duration {
+	if startedTime == nil {
+		return nil
+	}
+	elapsed := time.Since(*startedTime)
 	remaining := duration - elapsed
 
 	if remaining < 0 {
 		remaining = 0
 	}
 
-	return remaining
+	return &remaining
 }
 
 func Uuid() (uuid string) {

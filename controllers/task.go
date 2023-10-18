@@ -9,14 +9,14 @@ import (
 	"os"
 	"scheduler/models"
 	"scheduler/utils"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type TaskController struct {
-	startedTime time.Time
-	template    *template.Template
+	template *template.Template
 	// ... add fields like database connection or services here.
 }
 
@@ -26,19 +26,12 @@ func NewTaskController(templates []string) *TaskController {
 		log.Fatalf("Failed to parse templates: %v", err)
 	}
 	return &TaskController{
-		startedTime: time.Now(),
-		template:    tmpl,
+		template: tmpl,
 	}
 }
 
 func (tc *TaskController) GetTasks(c *gin.Context) {
 	tasks := getTasks()
-
-	for i := range tasks {
-		taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
-		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
-		tasks[i].RemainingTime = &remainingTime
-	}
 
 	c.HTML(http.StatusOK, "pages/tasks", models.TasksPageData{
 		Tasks: tasks,
@@ -67,28 +60,22 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 
 	err = writeSchedulerData(scheduler)
 	if err != nil {
-		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"NaErrorme": "FAILED TO CREATE TASK"})
+		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"NaErrorme": "FAILED TO SAVE TASK"})
 		return
 	}
 	c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Name": formData.Name})
 }
 
 func (tc *TaskController) TasksUpdate(c *gin.Context) {
-	tasks := getTasks()
 
 	for {
-		for i := range tasks {
-			taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
-			remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
-			tasks[i].RemainingTime = &remainingTime
-		}
+		tasks := getTasks()
 
 		taskListTpl, _ := renderTemplate(tc.template, "tasks/table-body", models.TasksUpdateData{
 			Tasks: tasks,
 		})
 
 		c.SSEvent("tasks-update", taskListTpl)
-
 		c.Writer.Flush() // Flush the response to ensure the data is sent immediately
 
 		time.Sleep(1 * time.Second)
@@ -104,16 +91,18 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 	scheduler := readSchedulerData()
 
 	for _, task := range scheduler.Tasks {
-		taskDuration, _ := utils.ParseDuration(task.Schedule)
-		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
-		task.RemainingTime = &remainingTime
-
 		for _, id := range formData.TaskIds {
 			if id == task.Id {
 				task.Active = true
+				activatedTime := time.Now()
+				task.ActivatedTime = &activatedTime
+				taskDuration, _ := utils.ParseDuration(task.Schedule)
+				task.RemainingTime = utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
 			}
 		}
 	}
+
+	sortTasks(scheduler.Tasks)
 
 	err := writeSchedulerData(scheduler)
 	if err != nil {
@@ -133,16 +122,17 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 	scheduler := readSchedulerData()
 
 	for _, task := range scheduler.Tasks {
-		taskDuration, _ := utils.ParseDuration(task.Schedule)
-		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
-		task.RemainingTime = &remainingTime
-
 		for _, id := range formData.TaskIds {
 			if id == task.Id {
 				task.Active = false
+				task.ActivatedTime = nil
+				taskDuration, _ := utils.ParseDuration(task.Schedule)
+				task.RemainingTime = utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
 			}
 		}
 	}
+
+	sortTasks(scheduler.Tasks)
 
 	err := writeSchedulerData(scheduler)
 	if err != nil {
@@ -164,11 +154,6 @@ func readSchedulerData() *models.Scheduler {
 	return &scheduler
 }
 
-func getTasks() []*models.Task {
-	tasks := readSchedulerData().Tasks
-	return tasks
-}
-
 func writeSchedulerData(scheduler *models.Scheduler) error {
 	jsonData, err := json.MarshalIndent(scheduler, "", "    ")
 	if err != nil {
@@ -176,6 +161,39 @@ func writeSchedulerData(scheduler *models.Scheduler) error {
 	}
 
 	return os.WriteFile("schedule.json", jsonData, 0644)
+}
+
+func getTasks() []*models.Task {
+	scheduler := readSchedulerData()
+	tasks := scheduler.Tasks
+
+	for _, task := range tasks {
+		taskDuration, _ := utils.ParseDuration(task.Schedule)
+		task.RemainingTime = utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
+	}
+
+	sortTasks(tasks)
+
+	return tasks
+}
+
+func sortTasks(tasks []*models.Task) {
+	sort.Slice(tasks, func(i, j int) bool {
+		timeA := tasks[i].RemainingTime
+		timeB := tasks[j].RemainingTime
+
+		if timeA == nil && timeB == nil {
+			return false
+		}
+		if timeA == nil {
+			return false
+		}
+		if timeB == nil {
+			return true
+		}
+
+		return *timeA < *timeB
+	})
 }
 
 func renderTemplate(template *template.Template, tmplName string, data interface{}) (string, error) {

@@ -15,7 +15,8 @@ type Task struct {
 	Name          string
 	Active        bool
 	Schedule      string
-	RemainingTime *time.Duration
+	RemainingTime *time.Duration // optional
+	ActivatedTime *time.Time     // optional
 }
 
 type NewTaskFormData struct {
