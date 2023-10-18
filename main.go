@@ -34,9 +34,6 @@ func main() {
 	router.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/tasks")
 	})
-	// router.GET("/", func(ctx *gin.Context) {
-	// 	ctx.HTML(http.StatusOK, "index.tpl", nil)
-	// })
 
 	taskController := controllers.NewTaskController(templates)
 	router.GET("/tasks", taskController.GetTasks)
@@ -49,7 +46,7 @@ func main() {
 	router.GET("/data", dataHandler)
 	err := router.Run(getPort())
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 }

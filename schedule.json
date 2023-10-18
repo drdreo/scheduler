@@ -5,14 +5,14 @@
             "Name": "Take a break",
             "Active": true,
             "Schedule": "every 2h",
-            "RemainingTime": 6470538601300
+            "RemainingTime": 7183372144100
         },
         {
             "Id": "asdas",
             "Name": "Get water",
             "Active": true,
             "Schedule": "every 1h",
-            "RemainingTime": 2870538601300
+            "RemainingTime": 3583372144100
         },
         {
             "Id": "asdasdasdas",
@@ -40,7 +40,7 @@
             "Name": "Binder",
             "Active": true,
             "Schedule": "every 1d",
-            "RemainingTime": 0
+            "RemainingTime": 86383372144100
         },
         {
             "Id": "B489C5A7-3AE8-31B8-DF10-AD6ECFF235BF",
@@ -52,23 +52,23 @@
         {
             "Id": "92E84A81-B14B-3FB6-0D85-0B6A0E4C172F",
             "Name": "asd",
-            "Active": false,
+            "Active": true,
             "Schedule": "every 15min",
-            "RemainingTime": null
+            "RemainingTime": 883372144100
         },
         {
             "Id": "B5208A7A-0C03-651A-1456-2C47846E590B",
             "Name": "asdasd",
-            "Active": false,
+            "Active": true,
             "Schedule": "every 30s",
-            "RemainingTime": null
+            "RemainingTime": 13372144100
         },
         {
             "Id": "2C63DDF6-30ED-9CBB-71AC-D3D14981E8C8",
             "Name": "asd",
             "Active": false,
             "Schedule": "every 30s",
-            "RemainingTime": null
+            "RemainingTime": 13372144100
         }
     ]
 }

@@ -17,11 +17,10 @@ import (
 type TaskController struct {
 	startedTime time.Time
 	template    *template.Template
-	// You can add fields like a database connection or services here.
+	// ... add fields like database connection or services here.
 }
 
 func NewTaskController(templates []string) *TaskController {
-	// Parse the templates and check for any parsing errors
 	tmpl, err := template.ParseFiles(templates...)
 	if err != nil {
 		log.Fatalf("Failed to parse templates: %v", err)
@@ -33,7 +32,7 @@ func NewTaskController(templates []string) *TaskController {
 }
 
 func (tc *TaskController) GetTasks(c *gin.Context) {
-	tasks := readTaskData().Tasks
+	tasks := getTasks()
 
 	for i := range tasks {
 		taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
@@ -62,11 +61,11 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 		return
 	}
 
-	scheduler := readTaskData()
+	scheduler := readSchedulerData()
 	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule, Active: false}
 	scheduler.Tasks = append(scheduler.Tasks, newTask)
 
-	err = writeTaskData(&scheduler)
+	err = writeSchedulerData(&scheduler)
 	if err != nil {
 		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"NaErrorme": "FAILED TO CREATE TASK"})
 		return
@@ -75,7 +74,7 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 }
 
 func (tc *TaskController) TasksUpdate(c *gin.Context) {
-	tasks := readTaskData().Tasks
+	tasks := getTasks()
 
 	for {
 		for i := range tasks {
@@ -84,7 +83,7 @@ func (tc *TaskController) TasksUpdate(c *gin.Context) {
 			tasks[i].RemainingTime = &remainingTime
 		}
 
-		taskListTpl, _ := renderTemplate(c, tc.template, "tasks/table-body", models.TasksUpdateData{
+		taskListTpl, _ := renderTemplate(tc.template, "tasks/table-body", models.TasksUpdateData{
 			Tasks: tasks,
 		})
 
@@ -102,24 +101,26 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 		return
 	}
 
-	scheduler := readTaskData()
+	scheduler := readSchedulerData()
 	tasks := scheduler.Tasks
 
-	for i := range tasks {
-		taskDuration, _ := utils.ParseDuration(tasks[i].Schedule)
+	for _, task := range tasks {
+		taskDuration, _ := utils.ParseDuration(task.Schedule)
 		remainingTime := utils.CalculateRemainingTime(tc.startedTime, taskDuration)
-		tasks[i].RemainingTime = &remainingTime
+		task.RemainingTime = &remainingTime
 
 		for _, id := range formData.TaskIds {
-			if id == tasks[i].Id {
-				tasks[i].Active = true
+			if id == task.Id {
+				task.Active = true
 			}
 		}
 	}
 
 	scheduler.Tasks = tasks
-	writeTaskData(&scheduler)
-
+	err := writeSchedulerData(&scheduler)
+	if err != nil {
+		log.Println("Warning: Could not write task data")
+	}
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
 		Tasks: tasks,
 	})
@@ -131,7 +132,7 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 		return
 	}
 
-	scheduler := readTaskData()
+	scheduler := readSchedulerData()
 	tasks := scheduler.Tasks
 
 	for i := range tasks {
@@ -148,14 +149,14 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 
 	scheduler.Tasks = tasks
 
-	writeTaskData(&scheduler)
+	writeSchedulerData(&scheduler)
 
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
 		Tasks: tasks,
 	})
 }
 
-func readTaskData() models.Scheduler {
+func readSchedulerData() models.Scheduler {
 	var scheduler models.Scheduler
 
 	if err := utils.ParseJSONFile("schedule.json", &scheduler); err != nil {
@@ -166,20 +167,21 @@ func readTaskData() models.Scheduler {
 	return scheduler
 }
 
-func writeTaskData(scheduler *models.Scheduler) error {
+func getTasks() []models.Task {
+	tasks := readSchedulerData().Tasks
+	return tasks
+}
+
+func writeSchedulerData(scheduler *models.Scheduler) error {
 	jsonData, err := json.MarshalIndent(scheduler, "", "    ")
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile("schedule.json", jsonData, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile("schedule.json", jsonData, 0644)
 }
 
-func renderTemplate(c *gin.Context, template *template.Template, tmplName string, data interface{}) (string, error) {
+func renderTemplate(template *template.Template, tmplName string, data interface{}) (string, error) {
 	var tplContent bytes.Buffer
 
 	err := template.ExecuteTemplate(&tplContent, tmplName, data)
