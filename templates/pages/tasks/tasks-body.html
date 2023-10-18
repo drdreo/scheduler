@@ -4,13 +4,17 @@
 {{ range .Tasks }}
 <tr class="">
     <td><input type='checkbox' name='task-ids' value='{{.Id}}'></td>
-    <td>{{.Name}}</td>
-    <td>{{.Schedule}}</td>
-    {{ if .Active }}
-    <td>in {{.RemainingTime}}</td>
-    {{ else }}
-    <td>Inactive</td>
-    {{ end }}
+    <td>
+        <div class="task {{ if not .Active}} inactive {{ end }}  {{ if .IsSoon }} soon {{ end }}">
+            <div class="task__schedule">{{.Schedule}}</div>
+            <div class="task__name">{{.Name}}</div>
+            <div class="task__duration">{{ .RemainingTime}}</div>
+        </div>
+    </td>
+
+    <td class="task-trigger">
+        flash screen, audio trigger, webhook, discord ping
+    </td>
 </tr>
 {{ end }}
 {{ end }}

@@ -1,19 +1,19 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
 
-func TestInterval() {
-	intervalStr := "every 6s"
+func TestInterval(intervalStr string) {
 	duration, err := ParseDuration(intervalStr)
 	if err != nil {
 		panic(err)
@@ -21,41 +21,58 @@ func TestInterval() {
 	fmt.Println("duration: ", duration)
 }
 
+// ParseDuration parses a string schedule input into go time data.
+// Supported formats are: (<every|in> 6h30m) or (at 18:00)
+// If the input cannot be parsed, it returns a time.Duration of 0
 func ParseDuration(input string) (time.Duration, error) {
-	pattern := regexp.MustCompile(`^(every|in|at) (\d+)([a-zA-Z]+|\d{2}:\d{2})$`)
+	pattern := regexp.MustCompile(`^(every|in|at) (\d+[a-zA-Z]+|\d{2}:\d{2})$`)
 	matches := pattern.FindStringSubmatch(strings.ToLower(input))
 
-	if len(matches) != 4 {
+	if len(matches) != 3 {
 		err := fmt.Errorf("invalid duration format, found <%s>, allowed <every|in|at>", input)
 		log.Print(err)
 		return 0, err
 	}
 
-	//	command := matches[1]
+	command := matches[1]
+	timeValue := matches[2]
 
-	numericValue, err := strconv.Atoi(matches[2])
+	if command == "at" {
+		targetTime, err := timeUntil(timeValue)
+		if err != nil {
+			err = fmt.Errorf("invalid duration format, found <%s>, allowed <every|in|at>", input)
+			log.Print(err)
+			return 0, err
+		}
+		return targetTime, nil
+	}
+
+	timeValue = fixTimeUnit(timeValue)
+
+	return time.ParseDuration(timeValue)
+}
+
+func fixTimeUnit(timeValue string) string {
+	var fixedTime = timeValue
+
+	fixedTime = strings.Replace(fixedTime, "min", "m", -1)
+	fixedTime = strings.Replace(fixedTime, "sec", "s", -1)
+
+	return fixedTime
+}
+
+func timeUntil(timeStr string) (time.Duration, error) {
+
+	currentTime := time.Now()
+	year, month, day := currentTime.Date()
+
+	targetTime, err := time.Parse(time.DateTime, fmt.Sprintf("%d-%d-%d %s:00", year, month, day, timeStr))
 	if err != nil {
-		err := fmt.Errorf("invalid <interval> value")
-		log.Print(err)
+		fmt.Println("Error parsing time:", err)
 		return 0, err
 	}
 
-	// TODO: add at syntax
-	unit := strings.ToLower(matches[3])
-	switch unit {
-	case "s", "sec", "second", "seconds":
-		return time.Duration(numericValue) * time.Second, nil
-	case "m", "min", "minute", "minutes":
-		return time.Duration(numericValue) * time.Minute, nil
-	case "h", "hr", "hour", "hours":
-		return time.Duration(numericValue) * time.Hour, nil
-	case "d", "days":
-		return time.Duration(numericValue) * time.Hour * 24, nil
-	default:
-		err := fmt.Errorf("invalid time unit")
-		log.Print(err)
-		return 0, err
-	}
+	return targetTime.Sub(currentTime), nil
 }
 
 func ParseJSONFile(filePath string, result interface{}) error {
@@ -97,4 +114,17 @@ func Uuid() (uuid string) {
 	uuid = fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 
 	return
+}
+
+func RenderTemplate(template *template.Template, tmplName string, data interface{}) (string, error) {
+	var tplContent bytes.Buffer
+
+	err := template.ExecuteTemplate(&tplContent, tmplName, data)
+	if err != nil {
+		log.Fatal("err: ", err)
+
+		return "", err
+	}
+
+	return tplContent.String(), nil
 }

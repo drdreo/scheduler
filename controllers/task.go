@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"bytes"
 	"encoding/json"
 	"html/template"
 	"log"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"scheduler/models"
 	"scheduler/utils"
-	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -32,9 +30,16 @@ func NewTaskController(templates []string) *TaskController {
 
 func (tc *TaskController) GetTasks(c *gin.Context) {
 	tasks := getTasks()
+	checkExpiredTasks(tasks)
+	err := writeTasksData(tasks)
+	if err != nil {
+		log.Fatal("Could not write tasks data")
+	}
+
+	viewTasks := models.GetViewTasks(tasks)
 
 	c.HTML(http.StatusOK, "pages/tasks", models.TasksPageData{
-		Tasks: tasks,
+		Tasks: viewTasks,
 	})
 }
 
@@ -50,6 +55,7 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 
 	_, err := utils.ParseDuration(formData.Schedule)
 	if err != nil {
+		log.Print(err)
 		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Error": "FAILED TO PARSE SCHEDULE"})
 		return
 	}
@@ -70,9 +76,9 @@ func (tc *TaskController) TasksUpdate(c *gin.Context) {
 
 	for {
 		tasks := getTasks()
-
-		taskListTpl, _ := renderTemplate(tc.template, "tasks/table-body", models.TasksUpdateData{
-			Tasks: tasks,
+		viewTasks := models.GetViewTasks(tasks)
+		taskListTpl, _ := utils.RenderTemplate(tc.template, "tasks/table-body", models.TasksUpdateData{
+			Tasks: viewTasks,
 		})
 
 		c.SSEvent("tasks-update", taskListTpl)
@@ -96,20 +102,20 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 				task.Active = true
 				activatedTime := time.Now()
 				task.ActivatedTime = &activatedTime
-				taskDuration, _ := utils.ParseDuration(task.Schedule)
-				task.RemainingTime = utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
 			}
 		}
 	}
 
-	sortTasks(scheduler.Tasks)
+	models.SortTasks(scheduler.Tasks)
 
 	err := writeSchedulerData(scheduler)
 	if err != nil {
 		log.Fatal("Could not write scheduler data")
 	}
+
+	viewTasks := models.GetViewTasks(scheduler.Tasks)
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
-		Tasks: scheduler.Tasks,
+		Tasks: viewTasks,
 	})
 }
 
@@ -126,21 +132,21 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 			if id == task.Id {
 				task.Active = false
 				task.ActivatedTime = nil
-				taskDuration, _ := utils.ParseDuration(task.Schedule)
-				task.RemainingTime = utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
 			}
 		}
 	}
 
-	sortTasks(scheduler.Tasks)
+	models.SortTasks(scheduler.Tasks)
 
 	err := writeSchedulerData(scheduler)
 	if err != nil {
 		log.Println("Warning: Could not write scheduler data")
 	}
 
+	viewTasks := models.GetViewTasks(scheduler.Tasks)
+
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
-		Tasks: scheduler.Tasks,
+		Tasks: viewTasks,
 	})
 }
 
@@ -163,48 +169,27 @@ func writeSchedulerData(scheduler *models.Scheduler) error {
 	return os.WriteFile("schedule.json", jsonData, 0644)
 }
 
+func writeTasksData(tasks []*models.Task) error {
+	scheduler := readSchedulerData()
+	scheduler.Tasks = tasks
+	return writeSchedulerData(scheduler)
+}
+
 func getTasks() []*models.Task {
 	scheduler := readSchedulerData()
 	tasks := scheduler.Tasks
 
-	for _, task := range tasks {
-		taskDuration, _ := utils.ParseDuration(task.Schedule)
-		task.RemainingTime = utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
-	}
-
-	sortTasks(tasks)
+	models.SortTasks(tasks)
 
 	return tasks
 }
 
-func sortTasks(tasks []*models.Task) {
-	sort.Slice(tasks, func(i, j int) bool {
-		timeA := tasks[i].RemainingTime
-		timeB := tasks[j].RemainingTime
-
-		if timeA == nil && timeB == nil {
-			return false
+func checkExpiredTasks(tasks []*models.Task) {
+	for _, task := range tasks {
+		taskDuration, _ := utils.ParseDuration(task.Schedule)
+		remainingTime := utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
+		if task.ActivatedTime != nil && remainingTime.Seconds() <= 0 {
+			task.Active = false
 		}
-		if timeA == nil {
-			return false
-		}
-		if timeB == nil {
-			return true
-		}
-
-		return *timeA < *timeB
-	})
-}
-
-func renderTemplate(template *template.Template, tmplName string, data interface{}) (string, error) {
-	var tplContent bytes.Buffer
-
-	err := template.ExecuteTemplate(&tplContent, tmplName, data)
-	if err != nil {
-		log.Fatal("err: ", err)
-
-		return "", err
 	}
-
-	return tplContent.String(), nil
 }

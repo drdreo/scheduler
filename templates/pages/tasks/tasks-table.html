@@ -5,9 +5,8 @@
         <thead>
         <tr>
             <th></th>
-            <th>Name</th>
-            <th>Schedule</th>
-            <th>Status</th>
+            <th>Tasks</th>
+            <th>Triggers</th>
         </tr>
         </thead>
         <tbody id="tasks-body">
@@ -17,8 +16,9 @@
 </form>
 
 <div hx-include="#tasks-form" hx-target="#tasks-body">
-    <button class="btn" hx-put="/tasks/activate">Activate</button>
-    <button class="btn" hx-put="/tasks/deactivate">Deactivate</button>
+    <button class="button" hx-put="/tasks/activate">Activate</button>
+    <button class="button" hx-put="/tasks/deactivate">Deactivate</button>
+    <button class="button danger" hx-delete="/tasks">Delete</button>
 </div>
 
 {{ end }}
