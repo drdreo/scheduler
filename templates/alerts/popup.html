@@ -1,0 +1,19 @@
+{{ define "alerts/popup" }}
+
+<div class="popup" id="popup-{{.Task.Id}}">
+    <div class="wrapper">
+        <div class="bell">
+            <div class="anchor material-icons layer-1">notifications_active</div>
+            <div class="anchor material-icons layer-2">notifications</div>
+            <div class="anchor material-icons layer-3">notifications</div>
+
+        </div>
+
+        <div class="task-name">{{.Task.Name}} EXPIRED
+
+            <button hx-put="/tasks/{{.Task.Id}}/done" hx-target="#popup-{{.Task.Id}}" hx-swap="outerHTML">Done</button>
+        </div>
+    </div>
+</div>
+
+{{ end }}

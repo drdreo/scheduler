@@ -3,8 +3,10 @@
 
 
 <h1>All Tasks</h1>
-<!-- <div hx-ext="sse" sse-connect="/tasks-update" sse-swap="tasks-update" hx-target="#tasks-body">
-</div> -->
+<!-- <div hx-ext="sse" sse-connect="/tasks-update" sse-swap="tasks-update" hx-target="#tasks-body">-->
+<!--</div> -->
+<div hx-ext="sse" sse-connect="/sse-alerts" sse-swap="task-alert" hx-target="body" hx-swap="beforeend">
+</div>
 
 {{ template "tasks/table" .}}
 

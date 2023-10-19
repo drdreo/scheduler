@@ -13,6 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var alertChannel = make(chan *models.Task)
+
 type TaskController struct {
 	template *template.Template
 	// ... add fields like database connection or services here.
@@ -88,6 +90,43 @@ func (tc *TaskController) TasksUpdate(c *gin.Context) {
 	}
 }
 
+func (tc *TaskController) RegisterAllTasksSchedules() {
+	scheduler := readSchedulerData()
+
+	for _, task := range scheduler.Tasks {
+		tc.RegisterTaskSchedule(task)
+	}
+}
+
+func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
+	go func(task *models.Task) {
+		taskDuration, _ := utils.ParseDuration(task.Schedule)
+		log.Printf("Task '%s' registered in - %s", task.Name, taskDuration)
+
+		time.Sleep(taskDuration)
+
+		log.Printf("Task expired - %s", task.Name)
+		alertChannel <- task
+	}(task)
+}
+
+func (tc *TaskController) SubscribeToAlerts(c *gin.Context) {
+	//	c.Header("Content-Type", "text/event-stream")
+	//	c.Header("Cache-Control", "no-cache")
+	//	c.Header("Connection", "keep-alive")
+
+	for {
+		task := <-alertChannel
+		alertTpl, _ := utils.RenderTemplate(tc.template, "alerts/popup", models.AlertPopupData{
+			Task: task.ToTaskVM(),
+		})
+
+		log.Printf("Sending alert for - %s", task.Name)
+		c.SSEvent("task-alert", alertTpl)
+		c.Writer.Flush()
+	}
+}
+
 func (tc *TaskController) TasksActivate(c *gin.Context) {
 	formData := &models.ActivateTaskFormData{}
 	if err := c.Bind(formData); err != nil {
@@ -102,6 +141,8 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 				task.Active = true
 				activatedTime := time.Now()
 				task.ActivatedTime = &activatedTime
+
+				tc.RegisterTaskSchedule(task)
 			}
 		}
 	}
@@ -148,6 +189,13 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
 		Tasks: viewTasks,
 	})
+}
+
+func (tc *TaskController) TaskDone(c *gin.Context) {
+	taskId := c.Param("id")
+	log.Printf("Task doned %s", taskId)
+
+	c.String(http.StatusOK, "")
 }
 
 func readSchedulerData() *models.Scheduler {

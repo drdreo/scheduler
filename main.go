@@ -37,12 +37,17 @@ func main() {
 	})
 
 	taskController := controllers.NewTaskController(templates)
+	taskController.RegisterAllTasksSchedules()
+
 	router.GET("/tasks", taskController.GetTasks)
 	router.GET("/tasks/new", taskController.GetNewTaskForm)
 	router.POST("/tasks/new", taskController.NewTask)
 	router.GET("/tasks-update", taskController.TasksUpdate) // https://blog.stackademic.com/real-time-communication-with-golang-and-server-sent-events-sse-a-practical-tutorial-1094b37e17f5
 	router.PUT("/tasks/activate", taskController.TasksActivate)
 	router.PUT("/tasks/deactivate", taskController.TasksDeactivate)
+	router.PUT("/tasks/:id/done", taskController.TaskDone)
+
+	router.GET("/sse-alerts", taskController.SubscribeToAlerts)
 
 	router.GET("/data", dataHandler)
 	err := router.Run(getPort())
@@ -87,23 +92,3 @@ func dataHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, &scheduler)
 }
-
-//func sendMessageToClients() {
-//    for {
-//        // Simulate sending a message to all connected WebSocket clients every 5 seconds.
-//        time.Sleep(5 * time.Second)
-//
-//        // Create the message you want to send.
-//        message := []byte("Hello from the server!")
-//
-//        // Iterate through WebSocket clients and send the message.
-//        for client := range clients {
-//            err := client.WriteMessage(websocket.TextMessage, message)
-//            if err != nil {
-//                fmt.Println("Error sending message:", err)
-//                client.Close()
-//                delete(clients, client)
-//            }
-//        }
-//    }
-//}
