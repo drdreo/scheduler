@@ -31,6 +31,7 @@ func main() {
 	templates := getTemplateFiles("templates")
 	router.LoadHTMLFiles(templates...)
 
+	router.Static("/static", "./static")
 	router.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/tasks")
 	})

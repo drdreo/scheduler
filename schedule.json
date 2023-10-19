@@ -1,39 +1,39 @@
 {
     "tasks": [
         {
-            "id": "92E84A81-B14B-3FB6-0D85-0B6A0E4C172F",
-            "name": "asd",
-            "active": true,
-            "schedule": "every 15min",
-            "activatedTime": "2023-10-18T21:34:56.5499369+02:00"
-        },
-        {
-            "id": "71AF5A32-4853-8AA1-60F6-1E3E2501A639",
-            "name": "Test At",
-            "active": true,
-            "schedule": "at 20:45",
-            "activatedTime": "2023-10-18T21:14:32.5015689+02:00"
-        },
-        {
-            "id": "123123",
-            "name": "Take a break",
-            "active": true,
-            "schedule": "every 2h",
-            "activatedTime": "2023-10-18T21:15:10.3080504+02:00"
-        },
-        {
             "id": "asdasdasdas",
             "name": "Stir pot",
-            "active": true,
+            "active": false,
             "schedule": "in 2h",
             "activatedTime": "2023-10-18T21:34:42.2803514+02:00"
         },
         {
+            "id": "123123",
+            "name": "Take a break",
+            "active": false,
+            "schedule": "every 2h",
+            "activatedTime": "2023-10-18T21:15:10.3080504+02:00"
+        },
+        {
+            "id": "71AF5A32-4853-8AA1-60F6-1E3E2501A639",
+            "name": "Test At",
+            "active": false,
+            "schedule": "at 20:45",
+            "activatedTime": "2023-10-18T21:14:32.5015689+02:00"
+        },
+        {
             "id": "harahar",
             "name": "Try more reading",
-            "active": true,
+            "active": false,
             "schedule": "in 6h",
             "activatedTime": "2023-10-18T21:34:42.2803514+02:00"
+        },
+        {
+            "id": "92E84A81-B14B-3FB6-0D85-0B6A0E4C172F",
+            "name": "asd",
+            "active": false,
+            "schedule": "every 15min",
+            "activatedTime": "2023-10-18T21:34:56.5499369+02:00"
         },
         {
             "id": "2C63DDF6-30ED-9CBB-71AC-D3D14981E8C8",
