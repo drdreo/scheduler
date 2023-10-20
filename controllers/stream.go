@@ -5,12 +5,22 @@ import (
 	"log"
 )
 
+const (
+	EVENT_TASK_ALERT   = 1
+	EVENT_TASKS_UPDATE = 2
+)
+
 // New event messages are broadcast to all registered client connection channels
-type ClientChan chan interface{}
+type ClientChan chan *Event
+
+type Event struct {
+	Message interface{}
+	Type    int
+}
 
 type StreamController struct {
 	// Events are pushed to this channel by the main events-gathering routine
-	Message chan interface{}
+	Message chan *Event
 
 	// New client connections
 	NewClients chan ClientChan
@@ -24,7 +34,7 @@ type StreamController struct {
 
 func NewStreamController() (sc *StreamController) {
 	sc = &StreamController{
-		Message:       make(chan interface{}),
+		Message:       make(chan *Event),
 		NewClients:    make(chan ClientChan),
 		ClosedClients: make(chan ClientChan),
 		TotalClients:  make(map[ClientChan]bool),
@@ -43,13 +53,13 @@ func (sc *StreamController) listen() {
 		// Add new available client
 		case client := <-sc.NewClients:
 			sc.TotalClients[client] = true
-			log.Printf("Client added. %d registered clients", len(sc.TotalClients))
+			log.Printf("[DEBUG] Client added. %d registered clients", len(sc.TotalClients))
 
 		// Remove closed client
 		case client := <-sc.ClosedClients:
 			delete(sc.TotalClients, client)
 			close(client)
-			log.Printf("Removed client. %d registered clients", len(sc.TotalClients))
+			log.Printf("[DEBUG] Removed client. %d registered clients", len(sc.TotalClients))
 
 		// Broadcast message to client
 		case eventMsg := <-sc.Message:

@@ -16,8 +16,7 @@ import (
 type TaskController struct {
 	template *template.Template
 	// ... add fields like database connection or services here.
-	alertChannel chan *models.Task
-	sc           *StreamController
+	sc *StreamController
 }
 
 func NewTaskController(streamController *StreamController, templates []string) *TaskController {
@@ -26,9 +25,8 @@ func NewTaskController(streamController *StreamController, templates []string) *
 		log.Fatalf("Failed to parse templates: %v", err)
 	}
 	return &TaskController{
-		template:     tmpl,
-		alertChannel: make(chan *models.Task),
-		sc:           streamController,
+		template: tmpl,
+		sc:       streamController,
 	}
 }
 
@@ -65,7 +63,7 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 	}
 
 	scheduler := readSchedulerData()
-	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule, Active: false}
+	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule}
 	scheduler.Tasks = append(scheduler.Tasks, &newTask)
 
 	err = writeSchedulerData(scheduler)
@@ -79,24 +77,34 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 func (tc *TaskController) TasksUpdate(c *gin.Context) {
 
 	for {
-		tasks := getTasks()
-		viewTasks := models.GetViewTasks(tasks)
-		taskListTpl, _ := utils.RenderTemplate(tc.template, "tasks/table-body", models.TasksUpdateData{
-			Tasks: viewTasks,
-		})
-
-		c.SSEvent("tasks-update", taskListTpl)
+		taskUpdateTpl := tc.GetTasksUpdate()
+		c.SSEvent("tasks-update", taskUpdateTpl)
 		c.Writer.Flush() // Flush the response to ensure the data is sent immediately
 
 		time.Sleep(1 * time.Second)
 	}
 }
 
+func (tc *TaskController) GetTasksUpdate() string {
+	tasks := getTasks()
+	viewTasks := models.GetViewTasks(tasks)
+	taskListTpl, _ := utils.RenderTemplate(tc.template, "tasks/table-body", models.TasksUpdateData{
+		Tasks: viewTasks,
+	})
+
+	return taskListTpl
+}
+
 func (tc *TaskController) RegisterAllTasksSchedules() {
 	scheduler := readSchedulerData()
 
+	checkExpiredTasks(scheduler.Tasks)
+	writeTasksData(scheduler.Tasks)
+
 	for _, task := range scheduler.Tasks {
-		tc.RegisterTaskSchedule(task)
+		if task.IsActive() {
+			tc.RegisterTaskSchedule(task)
+		}
 	}
 }
 
@@ -108,28 +116,11 @@ func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 		time.Sleep(taskDuration)
 
 		log.Printf("Task expired - %s", task.Name)
-		tc.sc.Message <- task
-		tc.alertChannel <- task
+		tc.sc.Message <- &Event{
+			Message: task,
+			Type:    1,
+		}
 	}(task)
-}
-
-func (tc *TaskController) SubscribeToAlerts(c *gin.Context) {
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.SSEvent("subscribe", "Success")
-	c.Writer.Flush()
-
-	for {
-		task := <-tc.alertChannel
-		alertTpl, _ := utils.RenderTemplate(tc.template, "alerts/popup", models.AlertPopupData{
-			Task: task.ToTaskVM(),
-		})
-
-		log.Printf("Sending alert for - %s", task.Name)
-		c.SSEvent("task-alert", alertTpl)
-		c.Writer.Flush()
-	}
 }
 
 func (tc *TaskController) GetAlertTpl(task *models.Task) string {
@@ -151,7 +142,6 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 	for _, task := range scheduler.Tasks {
 		for _, id := range formData.TaskIds {
 			if id == task.Id {
-				task.Active = true
 				activatedTime := time.Now()
 				task.ActivatedTime = &activatedTime
 
@@ -184,7 +174,6 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 	for _, task := range scheduler.Tasks {
 		for _, id := range formData.TaskIds {
 			if id == task.Id {
-				task.Active = false
 				task.ActivatedTime = nil
 			}
 		}
@@ -208,6 +197,10 @@ func (tc *TaskController) TaskDone(c *gin.Context) {
 	taskId := c.Param("id")
 	log.Printf("Task doned %s", taskId)
 
+	tc.sc.Message <- &Event{
+		Message: nil,
+		Type:    2,
+	}
 	c.String(http.StatusOK, "")
 }
 
@@ -247,10 +240,8 @@ func getTasks() []*models.Task {
 
 func checkExpiredTasks(tasks []*models.Task) {
 	for _, task := range tasks {
-		taskDuration, _ := utils.ParseDuration(task.Schedule)
-		remainingTime := utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
-		if task.ActivatedTime != nil && remainingTime.Seconds() <= 0 {
-			task.Active = false
+		if !task.IsActive() {
+			task.ActivatedTime = nil
 		}
 	}
 }

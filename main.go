@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"scheduler/controllers"
 	"scheduler/models"
 	"scheduler/utils"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,7 +24,7 @@ func getPort() string {
 }
 
 func main() {
-	fmt.Println("main running... ")
+	log.Println("main running... ")
 	router := gin.Default()
 
 	templates := getTemplateFiles("templates")
@@ -50,8 +48,6 @@ func main() {
 	router.PUT("/tasks/deactivate", taskController.TasksDeactivate)
 	router.PUT("/tasks/:id/done", taskController.TaskDone)
 
-	router.GET("/sse-alerts", taskController.SubscribeToAlerts)
-
 	// Add event-streaming headers
 	router.GET("/stream", controllers.StreamHeadersMiddleware(), streamController.ServeHTTP(), func(c *gin.Context) {
 		v, ok := c.Get("clientChan")
@@ -65,13 +61,16 @@ func main() {
 		c.Stream(func(w io.Writer) bool {
 			// Stream message to client from message channel
 			if event, ok := <-clientChan; ok {
+				log.Printf("[DEBUG] Trying to send event[%d] - %s", event.Type, event.Message)
 
-				log.Printf("Trying to send %s", event)
-				if task, isTask := event.(*models.Task); isTask {
-					alertTpl := taskController.GetAlertTpl(task)
-					c.SSEvent("task-alert", alertTpl)
-				} else if message, isString := event.(string); isString {
-					c.SSEvent("message", message)
+				switch event.Type {
+				case controllers.EVENT_TASK_ALERT:
+					handleTaskAlertEvent(c, event, taskController)
+				case controllers.EVENT_TASKS_UPDATE:
+					handleTasksUpdateEvent(c, taskController)
+				default:
+					// generic "message" event handler
+					c.SSEvent("message", event.Message)
 				}
 
 				return true
@@ -88,6 +87,22 @@ func main() {
 
 }
 
+func handleTaskAlertEvent(c *gin.Context, event *controllers.Event, taskController *controllers.TaskController) {
+	if task, isTask := event.Message.(*models.Task); isTask {
+		alertTpl := taskController.GetAlertTpl(task)
+		c.SSEvent("task-alert", alertTpl)
+	}
+	if task, isTask := event.Message.(*models.Task); isTask {
+		alertTpl := taskController.GetAlertTpl(task)
+		c.SSEvent("task-alert", alertTpl)
+	}
+}
+
+func handleTasksUpdateEvent(c *gin.Context, taskController *controllers.TaskController) {
+	taskUpdateTpl := taskController.GetTasksUpdate()
+	c.SSEvent("tasks-update", taskUpdateTpl)
+}
+
 func getTemplateFiles(directory string) []string {
 	var files []string
 
@@ -102,12 +117,12 @@ func getTemplateFiles(directory string) []string {
 	})
 
 	if err != nil {
-		fmt.Println("Error walking directory:", err)
+		log.Println("[ERROR] Error walking directory:", err)
 	}
 
-	fmt.Println("Found templates:")
+	log.Println("[DEBUG] Found templates:")
 	for _, file := range files {
-		fmt.Println(" - ", file)
+		log.Println("[DEBUG] - ", file)
 	}
 
 	return files

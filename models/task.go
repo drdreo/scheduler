@@ -14,6 +14,7 @@ type TasksUpdateData struct {
 	Tasks []*TaskVM
 }
 
+// TaskVM is the Task View Model
 type TaskVM struct {
 	Id            string
 	Name          string
@@ -28,15 +29,14 @@ func (task *Task) ToTaskVM() *TaskVM {
 	viewTask := &TaskVM{
 		Id:       task.Id,
 		Name:     task.Name,
-		Active:   task.Active,
+		Active:   task.IsActive(),
 		Schedule: task.Schedule,
 	}
 
-	if task.ActivatedTime != nil {
-		taskDuration, _ := utils.ParseDuration(task.Schedule)
-		remainingTime := utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
+	if task.IsActive() {
 		viewTask.ActivatedTime = task.ActivatedTime.String()
-		viewTask.RemainingTime = remainingTime.String()
+		remainingTime := task.GetRemainingTime()
+		viewTask.RemainingTime = task.GetRemainingTime().String()
 		viewTask.IsSoon = remainingTime.Seconds() < 60
 	}
 
@@ -46,9 +46,22 @@ func (task *Task) ToTaskVM() *TaskVM {
 type Task struct {
 	Id            string     `json:"id"`
 	Name          string     `json:"name"`
-	Active        bool       `json:"active"`
 	Schedule      string     `json:"schedule"`
 	ActivatedTime *time.Time `json:"activatedTime"` // optional
+}
+
+func (task *Task) GetRemainingTime() *time.Duration {
+	taskDuration, _ := utils.ParseDuration(task.Schedule)
+	return utils.CalculateRemainingTime(task.ActivatedTime, taskDuration)
+}
+
+func (task *Task) IsActive() bool {
+	if task.ActivatedTime == nil {
+		return false
+	}
+
+	remaining := task.GetRemainingTime()
+	return remaining.Seconds() > 0
 }
 
 type NewTaskFormData struct {
@@ -85,10 +98,8 @@ func SortTasks(tasks []*Task) {
 			return true
 		}
 
-		taskDurationA, _ := utils.ParseDuration(tasks[i].Schedule)
-		remainingTimeA := *utils.CalculateRemainingTime(timeA, taskDurationA)
-		taskDurationB, _ := utils.ParseDuration(tasks[j].Schedule)
-		remainingTimeB := *utils.CalculateRemainingTime(timeB, taskDurationB)
+		remainingTimeA := *tasks[i].GetRemainingTime()
+		remainingTimeB := *tasks[j].GetRemainingTime()
 
 		if remainingTimeA <= 0 {
 			if remainingTimeB <= 0 {

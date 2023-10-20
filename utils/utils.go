@@ -13,14 +13,6 @@ import (
 	"time"
 )
 
-func TestInterval(intervalStr string) {
-	duration, err := ParseDuration(intervalStr)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("duration: ", duration)
-}
-
 // ParseDuration parses a string schedule input into go time data.
 // Supported formats are: (<every|in> 6h30m) or (at 18:00)
 // If the input cannot be parsed, it returns a time.Duration of 0
@@ -68,7 +60,7 @@ func timeUntil(timeStr string) (time.Duration, error) {
 
 	targetTime, err := time.Parse(time.DateTime, fmt.Sprintf("%d-%d-%d %s:00", year, month, day, timeStr))
 	if err != nil {
-		fmt.Println("Error parsing time:", err)
+		log.Println("[ERROR] Error parsing time: ", err)
 		return 0, err
 	}
 
@@ -107,7 +99,7 @@ func Uuid() (uuid string) {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		log.Println("Error: ", err)
 		return
 	}
 

@@ -3,77 +3,66 @@
         {
             "id": "920D5CB2-9201-D255-75B7-D75F0D4064F1",
             "name": "Tester",
-            "active": true,
             "schedule": "in 5s",
-            "activatedTime": "2023-10-20T19:23:30.3309723+02:00"
-        },
-        {
-            "id": "123123",
-            "name": "Take a break",
-            "active": true,
-            "schedule": "every 2h",
-            "activatedTime": "2023-10-20T18:12:16.8583252+02:00"
-        },
-        {
-            "id": "71AF5A32-4853-8AA1-60F6-1E3E2501A639",
-            "name": "Test At",
-            "active": true,
-            "schedule": "at 20:45",
-            "activatedTime": "2023-10-20T18:08:13.1819099+02:00"
+            "activatedTime": "2023-10-20T22:38:45.0471322+02:00"
         },
         {
             "id": "asdasdasdas",
             "name": "Stir pot",
-            "active": false,
             "schedule": "in 2h",
-            "activatedTime": "2023-10-18T21:34:42.2803514+02:00"
+            "activatedTime": null
+        },
+        {
+            "id": "123123",
+            "name": "Take a break",
+            "schedule": "every 2h",
+            "activatedTime": null
+        },
+        {
+            "id": "71AF5A32-4853-8AA1-60F6-1E3E2501A639",
+            "name": "Test At",
+            "schedule": "at 20:45",
+            "activatedTime": null
         },
         {
             "id": "harahar",
             "name": "Try more reading",
-            "active": false,
             "schedule": "in 6h",
-            "activatedTime": "2023-10-18T21:34:42.2803514+02:00"
+            "activatedTime": null
         },
         {
             "id": "2C63DDF6-30ED-9CBB-71AC-D3D14981E8C8",
             "name": "asd",
-            "active": false,
             "schedule": "every 30s",
-            "activatedTime": "2023-10-19T20:20:35.7887265+02:00"
+            "activatedTime": null
         },
         {
             "id": "92E84A81-B14B-3FB6-0D85-0B6A0E4C172F",
             "name": "asd",
-            "active": false,
             "schedule": "every 15min",
-            "activatedTime": "2023-10-18T21:34:56.5499369+02:00"
+            "activatedTime": null
         },
         {
             "id": "B5208A7A-0C03-651A-1456-2C47846E590B",
             "name": "asdasd",
-            "active": false,
             "schedule": "every 30s",
-            "activatedTime": "2023-10-19T20:20:40.2975276+02:00"
+            "activatedTime": null
         },
         {
             "id": "B489C5A7-3AE8-31B8-DF10-AD6ECFF235BF",
             "name": "lydia",
-            "active": false,
             "schedule": "now",
             "activatedTime": null
         },
         {
             "id": "asdas",
             "name": "Get water",
-            "active": false,
             "schedule": "every 1h",
             "activatedTime": null
         },
         {
             "id": "dooof",
             "name": "Binder",
-            "active": false,
             "schedule": "every 1d",
             "activatedTime": null
         }

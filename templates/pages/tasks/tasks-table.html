@@ -9,7 +9,7 @@
             <th>Triggers</th>
         </tr>
         </thead>
-        <tbody id="tasks-body">
+        <tbody id="tasks-body" hx-get="/tasks-update" hx-trigger="sse:refresh-tasks">
         {{ template "tasks/table-body" .}}
         </tbody>
     </table>
