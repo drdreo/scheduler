@@ -13,20 +13,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var alertChannel = make(chan *models.Task)
-
 type TaskController struct {
 	template *template.Template
 	// ... add fields like database connection or services here.
+	alertChannel chan *models.Task
+	sc           *StreamController
 }
 
-func NewTaskController(templates []string) *TaskController {
+func NewTaskController(streamController *StreamController, templates []string) *TaskController {
 	tmpl, err := template.ParseFiles(templates...)
 	if err != nil {
 		log.Fatalf("Failed to parse templates: %v", err)
 	}
 	return &TaskController{
-		template: tmpl,
+		template:     tmpl,
+		alertChannel: make(chan *models.Task),
+		sc:           streamController,
 	}
 }
 
@@ -106,17 +108,20 @@ func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 		time.Sleep(taskDuration)
 
 		log.Printf("Task expired - %s", task.Name)
-		alertChannel <- task
+		tc.sc.Message <- task
+		tc.alertChannel <- task
 	}(task)
 }
 
 func (tc *TaskController) SubscribeToAlerts(c *gin.Context) {
-	//	c.Header("Content-Type", "text/event-stream")
-	//	c.Header("Cache-Control", "no-cache")
-	//	c.Header("Connection", "keep-alive")
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.SSEvent("subscribe", "Success")
+	c.Writer.Flush()
 
 	for {
-		task := <-alertChannel
+		task := <-tc.alertChannel
 		alertTpl, _ := utils.RenderTemplate(tc.template, "alerts/popup", models.AlertPopupData{
 			Task: task.ToTaskVM(),
 		})
@@ -125,6 +130,14 @@ func (tc *TaskController) SubscribeToAlerts(c *gin.Context) {
 		c.SSEvent("task-alert", alertTpl)
 		c.Writer.Flush()
 	}
+}
+
+func (tc *TaskController) GetAlertTpl(task *models.Task) string {
+	alertTpl, _ := utils.RenderTemplate(tc.template, "alerts/popup", models.AlertPopupData{
+		Task: task.ToTaskVM(),
+	})
+
+	return alertTpl
 }
 
 func (tc *TaskController) TasksActivate(c *gin.Context) {

@@ -3,8 +3,6 @@
     --color-text: white;
     --color-danger: red;
 
-    /*            --task-colors: (#daa420, red);*/
-
 
     /*  houdini stuff */
     --d: 3500ms;
@@ -64,56 +62,50 @@ body {
     font-size: 0.8rem;
     color: #fff;
     transition: background-color .17s ease, color .17s ease;
+
+    &.danger {
+        background-color: var(--color-danger);
+    }
 }
 
-.button.danger {
-    background-color: var(--color-danger);
-}
 
-.task {
-    display: flex;
-    flex-direction: column;
-    padding: 0.2rem 0.6rem;
-    min-height: 55px;
+.tasks-table {
+    .task {
+        display: flex;
+        flex-direction: column;
+        padding: 0.2rem 0.6rem;
+        min-height: 55px;
 
-    font-size: 0.9rem;
-    border: solid 1px;
-    border-radius: 7px;
-}
+        font-size: 0.9rem;
+        border: solid 1px;
+        border-radius: 7px;
 
-.task.soon {
-    border-image: conic-gradient(from var(--angle), var(--c2), var(--c1) 0.1turn, var(--c1) 0.15turn, var(--c2) 0.25turn) 30;
-    animation: borderRotate var(--d) linear infinite forwards;
-}
+        &.soon {
+            border-image: conic-gradient(from var(--angle), var(--c2), var(--c1) 0.1turn, var(--c1) 0.15turn, var(--c2) 0.25turn) 30;
+            animation: borderRotate var(--d) linear infinite forwards;
+        }
 
-.task:nth-child(1) {
-    /*            background-color: #FF5733; !* Color for odd task items *!*/
-}
+        &.inactive {
+            opacity: 0.3;
+        }
 
-.task:nth-child(2) {
-    background-color: red; /* Color for even task items */
-}
+        .task__schedule {
+            text-align: end;
+            font-size: 0.7rem;
+        }
 
-.task.inactive {
+        .task__name {
+            font-weight: bold;
+        }
 
-    opacity: 0.3;
-}
+        .task__duration {
+            font-size: 0.7rem;
+        }
+    }
 
-.task__schedule {
-    text-align: end;
-    font-size: 0.7rem;
-}
-
-.task__name {
-    font-weight: bold;
-}
-
-.task__duration {
-    font-size: 0.7rem;
-}
-
-.task-trigger {
-    font-size: 0.6rem;
+    .task-trigger {
+        font-size: 0.6rem;
+    }
 }
 
 .popup {
@@ -128,64 +120,71 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+
+    &.htmx-swapping {
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+    }
+
+    .wrapper {
+        width: 75%;
+        height: 50%;
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        background-color: #ffdd40;
+        color: black;
+    }
 }
 
-.popup .wrapper {
-    width: 75%;
-    height: 50%;
-    display: flex;
-    justify-content: space-evenly;
-    align-items: center;
-    background-color: #ffdd40;
-    color: black;
-}
 
-
-.bell .material-icons {
-    /* font-size:12rem !important; */
-    /* font-size:36px !important; */
-    font-size: 16rem !important;
-}
+/**
+    THIRD PARTY CSS
+**/
 
 .bell {
+    .material-icons {
+        font-size: 16rem !important;
+    }
+
     position: relative;
     display: inline-block;
-    /* border:dashed 1px rgba(0,0,0,.25); */
     margin: 0;
     padding: 0;
+
+    .anchor {
+        transform-origin: center top;
+        display: inline-block;
+        margin: 0;
+        padding: 0;
+    }
+
+    .layer-1 {
+        color: #1d1e22;
+        z-index: 9;
+        animation: animation-layer-1 5000ms infinite;
+        opacity: 0;
+    }
+
+    .layer-2 {
+        color: #1d1e22;
+        z-index: 8;
+        position: absolute;
+        top: 0;
+        left: 0;
+        animation: animation-layer-2 5000ms infinite;
+    }
+
+    .layer-3 {
+        color: #333642;
+        z-index: 7;
+        position: absolute;
+        top: 0;
+        left: 0;
+        animation: animation-layer-3 5000ms infinite;
+    }
 }
 
-.bell .anchor {
-    transform-origin: center top;
-    display: inline-block;
-    margin: 0;
-    padding: 0;
-}
-
-.bell .layer-1 {
-    color: #1d1e22;
-    z-index: 9;
-    animation: animation-layer-1 5000ms infinite;
-    opacity: 0;
-}
-
-.bell .layer-2 {
-    color: #1d1e22;
-    z-index: 8;
-    position: absolute;
-    top: 0;
-    left: 0;
-    animation: animation-layer-2 5000ms infinite;
-}
-
-.bell .layer-3 {
-    color: #333642;
-    z-index: 7;
-    position: absolute;
-    top: 0;
-    left: 0;
-    animation: animation-layer-3 5000ms infinite;
-}
 
 @keyframes animation-layer-1 {
     0% {

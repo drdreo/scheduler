@@ -5,7 +5,21 @@
             "name": "Tester",
             "active": true,
             "schedule": "in 5s",
-            "activatedTime": "2023-10-19T21:24:22.9949955+02:00"
+            "activatedTime": "2023-10-20T19:23:30.3309723+02:00"
+        },
+        {
+            "id": "123123",
+            "name": "Take a break",
+            "active": true,
+            "schedule": "every 2h",
+            "activatedTime": "2023-10-20T18:12:16.8583252+02:00"
+        },
+        {
+            "id": "71AF5A32-4853-8AA1-60F6-1E3E2501A639",
+            "name": "Test At",
+            "active": true,
+            "schedule": "at 20:45",
+            "activatedTime": "2023-10-20T18:08:13.1819099+02:00"
         },
         {
             "id": "asdasdasdas",
@@ -13,20 +27,6 @@
             "active": false,
             "schedule": "in 2h",
             "activatedTime": "2023-10-18T21:34:42.2803514+02:00"
-        },
-        {
-            "id": "123123",
-            "name": "Take a break",
-            "active": false,
-            "schedule": "every 2h",
-            "activatedTime": "2023-10-18T21:15:10.3080504+02:00"
-        },
-        {
-            "id": "71AF5A32-4853-8AA1-60F6-1E3E2501A639",
-            "name": "Test At",
-            "active": false,
-            "schedule": "at 20:45",
-            "activatedTime": "2023-10-18T21:14:32.5015689+02:00"
         },
         {
             "id": "harahar",

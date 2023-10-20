@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -31,13 +32,15 @@ func main() {
 	templates := getTemplateFiles("templates")
 	router.LoadHTMLFiles(templates...)
 
+	streamController := controllers.NewStreamController()
+
+	taskController := controllers.NewTaskController(streamController, templates)
+	taskController.RegisterAllTasksSchedules()
+
 	router.Static("/static", "./static")
 	router.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/tasks")
 	})
-
-	taskController := controllers.NewTaskController(templates)
-	taskController.RegisterAllTasksSchedules()
 
 	router.GET("/tasks", taskController.GetTasks)
 	router.GET("/tasks/new", taskController.GetNewTaskForm)
@@ -48,6 +51,34 @@ func main() {
 	router.PUT("/tasks/:id/done", taskController.TaskDone)
 
 	router.GET("/sse-alerts", taskController.SubscribeToAlerts)
+
+	// Add event-streaming headers
+	router.GET("/stream", controllers.StreamHeadersMiddleware(), streamController.ServeHTTP(), func(c *gin.Context) {
+		v, ok := c.Get("clientChan")
+		if !ok {
+			return
+		}
+		clientChan, ok := v.(controllers.ClientChan)
+		if !ok {
+			return
+		}
+		c.Stream(func(w io.Writer) bool {
+			// Stream message to client from message channel
+			if event, ok := <-clientChan; ok {
+
+				log.Printf("Trying to send %s", event)
+				if task, isTask := event.(*models.Task); isTask {
+					alertTpl := taskController.GetAlertTpl(task)
+					c.SSEvent("task-alert", alertTpl)
+				} else if message, isString := event.(string); isString {
+					c.SSEvent("message", message)
+				}
+
+				return true
+			}
+			return false
+		})
+	})
 
 	router.GET("/data", dataHandler)
 	err := router.Run(getPort())
