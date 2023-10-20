@@ -1,6 +1,6 @@
 {{ define "tasks/table" }}
 
-<form id="tasks-form">
+<form id="tasks-form" class="tasks-form">
     <table class="tasks-table">
         <thead>
         <tr>
@@ -9,7 +9,7 @@
             <th>Triggers</th>
         </tr>
         </thead>
-        <tbody id="tasks-body" hx-get="/tasks-update" hx-trigger="sse:refresh-tasks">
+        <tbody id="tasks-body">
         {{ template "tasks/table-body" .}}
         </tbody>
     </table>
@@ -18,7 +18,7 @@
 <div hx-include="#tasks-form" hx-target="#tasks-body">
     <button class="button" hx-put="/tasks/activate">Activate</button>
     <button class="button" hx-put="/tasks/deactivate">Deactivate</button>
-    <button class="button danger" hx-delete="/tasks">Delete</button>
+    <button class="button danger" hx-put="/tasks/delete">Delete</button>
 </div>
 
 {{ end }}

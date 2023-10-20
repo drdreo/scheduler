@@ -73,6 +73,10 @@ type ActivateTaskFormData struct {
 	TaskIds []string `form:"task-ids" validate:"required"`
 }
 
+type DeleteTaskFormData struct {
+	TaskIds []string `form:"task-ids" validate:"required"`
+}
+
 func GetViewTasks(tasks []*Task) []*TaskVM {
 	var viewTasks []*TaskVM
 

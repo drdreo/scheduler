@@ -2,6 +2,7 @@
     --color-bg: #1f212a;
     --color-text: white;
     --color-danger: red;
+    --color-success: green;
 
 
     /*  houdini stuff */
@@ -12,7 +13,6 @@
     --c1: rgba(168, 239, 255, 1);
     --c2: rgba(168, 239, 255, 0.1);
 }
-
 
 @property --angle {
     syntax: '<angle>';
@@ -66,10 +66,25 @@ body {
     &.danger {
         background-color: var(--color-danger);
     }
+
+    &.success {
+        background-color: var(--color-success);
+    }
 }
 
+.tasks-form {
+    display: flex;
+    justify-content: center;
+}
+
+.htmx-added {
+    border: 1px solid red;
+    transition: border 1s;
+}
 
 .tasks-table {
+    border-spacing: 1rem;
+
     .task {
         display: flex;
         flex-direction: column;

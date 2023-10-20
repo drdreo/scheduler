@@ -108,6 +108,20 @@ func (tc *TaskController) RegisterAllTasksSchedules() {
 	}
 }
 
+func (tc *TaskController) RegisterRefreshInterval() {
+
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			tc.sc.Message <- &Event{
+				Message: nil,
+				Type:    EVENT_TASKS_UPDATE,
+			}
+		}
+	}()
+
+}
+
 func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 	go func(task *models.Task) {
 		taskDuration, _ := utils.ParseDuration(task.Schedule)
@@ -118,7 +132,7 @@ func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 		log.Printf("Task expired - %s", task.Name)
 		tc.sc.Message <- &Event{
 			Message: task,
-			Type:    1,
+			Type:    EVENT_TASK_ALERT,
 		}
 	}(task)
 }
@@ -193,13 +207,56 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 	})
 }
 
+func (tc *TaskController) TasksDelete(c *gin.Context) {
+	formData := &models.DeleteTaskFormData{}
+	if err := c.Bind(formData); err != nil {
+		return
+	}
+
+	taskIds, _ := c.GetPostFormArray("task-ids")
+
+	log.Printf("ids %s", taskIds)
+
+	scheduler := readSchedulerData()
+	tasksToKeep := make([]*models.Task, 0, len(scheduler.Tasks))
+	for _, task := range scheduler.Tasks {
+		found := false
+
+		for _, id := range formData.TaskIds {
+			if id == task.Id {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			tasksToKeep = append(tasksToKeep, task)
+		}
+	}
+
+	scheduler.Tasks = tasksToKeep
+
+	models.SortTasks(scheduler.Tasks)
+
+	err := writeSchedulerData(scheduler)
+	if err != nil {
+		log.Println("Warning: Could not write scheduler data")
+	}
+
+	viewTasks := models.GetViewTasks(scheduler.Tasks)
+
+	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
+		Tasks: viewTasks,
+	})
+}
+
 func (tc *TaskController) TaskDone(c *gin.Context) {
 	taskId := c.Param("id")
 	log.Printf("Task doned %s", taskId)
 
 	tc.sc.Message <- &Event{
 		Message: nil,
-		Type:    2,
+		Type:    EVENT_TASKS_UPDATE,
 	}
 	c.String(http.StatusOK, "")
 }

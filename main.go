@@ -34,6 +34,7 @@ func main() {
 
 	taskController := controllers.NewTaskController(streamController, templates)
 	taskController.RegisterAllTasksSchedules()
+	taskController.RegisterRefreshInterval()
 
 	router.Static("/static", "./static")
 	router.GET("/", func(c *gin.Context) {
@@ -41,11 +42,12 @@ func main() {
 	})
 
 	router.GET("/tasks", taskController.GetTasks)
-	router.GET("/tasks/new", taskController.GetNewTaskForm)
+	router.GET("/tasks/new", taskController.GetNewTaskForm) // FOR HTMX
 	router.POST("/tasks/new", taskController.NewTask)
-	router.GET("/tasks-update", taskController.TasksUpdate) // https://blog.stackademic.com/real-time-communication-with-golang-and-server-sent-events-sse-a-practical-tutorial-1094b37e17f5
+	router.GET("/tasks-update", taskController.TasksUpdate) // FOR HTMX
 	router.PUT("/tasks/activate", taskController.TasksActivate)
 	router.PUT("/tasks/deactivate", taskController.TasksDeactivate)
+	router.PUT("/tasks/delete", taskController.TasksDelete)
 	router.PUT("/tasks/:id/done", taskController.TaskDone)
 
 	// Add event-streaming headers
@@ -59,7 +61,6 @@ func main() {
 			return
 		}
 		c.Stream(func(w io.Writer) bool {
-			// Stream message to client from message channel
 			if event, ok := <-clientChan; ok {
 				log.Printf("[DEBUG] Trying to send event[%d] - %s", event.Type, event.Message)
 
@@ -91,10 +92,8 @@ func handleTaskAlertEvent(c *gin.Context, event *controllers.Event, taskControll
 	if task, isTask := event.Message.(*models.Task); isTask {
 		alertTpl := taskController.GetAlertTpl(task)
 		c.SSEvent("task-alert", alertTpl)
-	}
-	if task, isTask := event.Message.(*models.Task); isTask {
-		alertTpl := taskController.GetAlertTpl(task)
-		c.SSEvent("task-alert", alertTpl)
+	} else {
+		log.Print("[WARN] Event and message type dont match")
 	}
 }
 

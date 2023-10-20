@@ -120,3 +120,8 @@ func RenderTemplate(template *template.Template, tmplName string, data interface
 
 	return tplContent.String(), nil
 }
+
+func RemoveSliceQck(s []interface{}, i int) []interface{} {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}

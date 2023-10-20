@@ -1,21 +1,21 @@
 {
     "tasks": [
         {
-            "id": "920D5CB2-9201-D255-75B7-D75F0D4064F1",
-            "name": "Tester",
-            "schedule": "in 5s",
-            "activatedTime": "2023-10-20T22:38:45.0471322+02:00"
-        },
-        {
             "id": "asdasdasdas",
             "name": "Stir pot",
             "schedule": "in 2h",
-            "activatedTime": null
+            "activatedTime": "2023-10-20T23:13:39.9354015+02:00"
         },
         {
-            "id": "123123",
-            "name": "Take a break",
-            "schedule": "every 2h",
+            "id": "harahar",
+            "name": "Try more reading",
+            "schedule": "in 6h",
+            "activatedTime": "2023-10-20T23:13:39.9354015+02:00"
+        },
+        {
+            "id": "920D5CB2-9201-D255-75B7-D75F0D4064F1",
+            "name": "Tester",
+            "schedule": "in 5s",
             "activatedTime": null
         },
         {
@@ -25,45 +25,15 @@
             "activatedTime": null
         },
         {
-            "id": "harahar",
-            "name": "Try more reading",
-            "schedule": "in 6h",
-            "activatedTime": null
-        },
-        {
-            "id": "2C63DDF6-30ED-9CBB-71AC-D3D14981E8C8",
-            "name": "asd",
-            "schedule": "every 30s",
-            "activatedTime": null
-        },
-        {
-            "id": "92E84A81-B14B-3FB6-0D85-0B6A0E4C172F",
-            "name": "asd",
-            "schedule": "every 15min",
-            "activatedTime": null
-        },
-        {
-            "id": "B5208A7A-0C03-651A-1456-2C47846E590B",
-            "name": "asdasd",
-            "schedule": "every 30s",
+            "id": "123123",
+            "name": "Take a break",
+            "schedule": "every 2h",
             "activatedTime": null
         },
         {
             "id": "B489C5A7-3AE8-31B8-DF10-AD6ECFF235BF",
             "name": "lydia",
             "schedule": "now",
-            "activatedTime": null
-        },
-        {
-            "id": "asdas",
-            "name": "Get water",
-            "schedule": "every 1h",
-            "activatedTime": null
-        },
-        {
-            "id": "dooof",
-            "name": "Binder",
-            "schedule": "every 1d",
             "activatedTime": null
         }
     ]
