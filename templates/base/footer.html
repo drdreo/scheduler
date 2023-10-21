@@ -1,4 +1,27 @@
 {{ define "base/footer" }}
+
+<script>
+    function checkNotification() {
+        if (!window.Notification) {
+            console.log('Browser does not support notifications.');
+        } else {
+            if (Notification.permission === 'granted') {
+                return;
+
+            }
+            Notification.requestPermission().then(function (p) {
+                if (p !== 'granted') {
+                    console.log('User blocked notifications.');
+                }
+            }).catch(function (err) {
+                console.error(err);
+            });
+
+        }
+    }
+
+    checkNotification();
+</script>
 </body>
 </html>
 {{ end }}

@@ -67,7 +67,7 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 		return
 	}
 
-	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule}
+	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule, Trigger: formData.Trigger}
 
 	if useDB {
 		err = tc.insertNewTask("1337", &newTask)
@@ -158,7 +158,15 @@ func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 }
 
 func (tc *TaskController) GetAlertTpl(task *models.Task) string {
-	alertTpl, _ := utils.RenderTemplate(tc.template, "alerts/popup", models.AlertPopupData{
+
+	var tplName string
+	if task.Trigger == "popup" {
+		tplName = "alerts/popup"
+	} else if task.Trigger == "audio" {
+		tplName = "alerts/audio"
+	}
+
+	alertTpl, _ := utils.RenderTemplate(tc.template, tplName, models.AlertPopupData{
 		Task: task.ToTaskVM(),
 	})
 

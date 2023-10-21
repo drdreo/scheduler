@@ -1,0 +1,29 @@
+{{ define "alerts/audio" }}
+
+<div class="audio-alert" id="audio-{{.Task.Id}}">
+
+    <script>
+        const notification = new Notification('{{.Task.Name}}', {
+            body: "expired - scheduled {{.Task.Schedule}}"
+        });
+        notification.onclick = function () {
+            window.parent.parent.focus();
+            notification.close();
+        };
+    </script>
+    <!--<audio autoplay>-->
+    <!--    <source src="/static/audio/retro-alarm.wav" type="audio/wav">-->
+    <!--</audio>-->
+
+    <div class="notification">
+        <span class="material-symbols-outlined icon">notifications</span>
+        <span class="task-name">{{.Task.Name}}</span> expired
+
+        <button class="button transparent" hx-put="/tasks/{{.Task.Id}}/done" hx-target="#audio-{{.Task.Id}}"
+                hx-swap="outerHTML">
+            <span class="material-symbols-outlined icon">done</span>
+        </button>
+    </div>
+</div>
+
+{{ end }}

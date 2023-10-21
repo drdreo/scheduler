@@ -12,6 +12,14 @@ import (
 	"time"
 )
 
+type TaskTrigger string
+
+const (
+	Popup   TaskTrigger = "popup"
+	Audio   TaskTrigger = "audio"
+	WebHook TaskTrigger = "webhook"
+)
+
 type TasksPageData struct {
 	Tasks []*TaskVM
 }
@@ -26,6 +34,7 @@ type TaskVM struct {
 	Name          string
 	Active        bool
 	Schedule      string
+	Trigger       TaskTrigger
 	IsSoon        bool
 	RemainingTime string
 	ActivatedTime string
@@ -37,6 +46,7 @@ func (task *Task) ToTaskVM() *TaskVM {
 		Name:     task.Name,
 		Active:   task.IsActive(),
 		Schedule: task.Schedule,
+		Trigger:  task.Trigger,
 	}
 
 	if task.IsActive() {
@@ -50,10 +60,11 @@ func (task *Task) ToTaskVM() *TaskVM {
 }
 
 type Task struct {
-	Id            string     `json:"id"`
-	Name          string     `json:"name"`
-	Schedule      string     `json:"schedule"`
-	ActivatedTime *time.Time `json:"activatedTime"` // optional
+	Id            string      `json:"id"`
+	Name          string      `json:"name"`
+	Schedule      string      `json:"schedule"`
+	ActivatedTime *time.Time  `json:"activatedTime"` // optional
+	Trigger       TaskTrigger `json: "trigger"`
 }
 
 func (task *Task) GetRemainingTime() *time.Duration {
@@ -71,8 +82,9 @@ func (task *Task) IsActive() bool {
 }
 
 type NewTaskFormData struct {
-	Name     string `form:"task-name" validate:"required"`
-	Schedule string `form:"task-schedule" validate:"required"`
+	Name     string      `form:"task-name" validate:"required"`
+	Schedule string      `form:"task-schedule" validate:"required"`
+	Trigger  TaskTrigger `form:"task-trigger" validate:"required"`
 }
 
 type ActivateTaskFormData struct {

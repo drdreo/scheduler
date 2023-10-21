@@ -4,8 +4,13 @@
 
 <h1>All Tasks</h1>
 
+<div class="notifications">
+
+</div>
+
 <div hx-ext="sse" sse-connect="/stream">
     <div sse-swap="task-alert" hx-target="body" hx-swap="beforeend"></div>
+    <div sse-swap="audio-alert" hx-target=".notifications" hx-swap="beforeend"></div>
     <div sse-swap="tasks-update" hx-target="#tasks-body"
          hx-swap="innerHTML swap:1s"></div>
 </div>

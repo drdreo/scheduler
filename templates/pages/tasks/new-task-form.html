@@ -2,18 +2,23 @@
 
 <form class="new-task-form" hx-post="/tasks/new" hx-swap="outerHtml" autocomplete="off">
 
-    <input class="input task-name" name="task-name" role="presentation" autocomplete="off" placeholder="Name"/>
+    <input class="input task-name" name="task-name" placeholder="Task name"/>
+    <input class="input task-schedule" name="task-schedule" placeholder="Schedule"/>
 
-    <input class="input task-schedule" name="task-schedule" role="presentation" autocomplete="off"
-           placeholder="Schedule"/>
 
-    <p>Trigger:</p>
-    <label for="trigger-popup">Popup</label><br>
-    <input type="radio" id="trigger-popup" name="trigger" value="popup">
-    <label for="trigger-audio">Audio</label><br>
-    <input type="radio" id="trigger-audio" name="trigger" value="audio">
-    <label for="trigger-webhook">Webhook</label><br><br>
-    <input type="radio" id="trigger-webhook" name="trigger" value="webhook">
+    <div class="task-triggers">
+        <h4>Trigger:</h4>
+
+        <input type="radio" id="trigger-popup" name="task-trigger" value="popup">
+        <label for="trigger-popup">Popup</label>
+
+        <input type="radio" id="trigger-audio" name="task-trigger" value="audio">
+        <label for="trigger-audio">Audio</label>
+
+        <input type="radio" id="trigger-webhook" name="task-trigger" value="webhook">
+        <label for="trigger-webhook">Webhook</label>
+    </div>
+
 
     <button type="submit" class="button success">Add</button>
 </form>
