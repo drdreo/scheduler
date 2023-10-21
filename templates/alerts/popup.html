@@ -6,19 +6,14 @@
             <div class="anchor material-symbols-outlined layer-1 icon">notifications_active</div>
             <div class="anchor material-symbols-outlined layer-2 icon">notifications</div>
             <div class="anchor material-symbols-outlined layer-3 icon">notifications</div>
-
-
         </div>
 
         <div class="task-name">{{.Task.Name}} expired
-
             <button class="button transparent" hx-put="/tasks/{{.Task.Id}}/done" hx-target="#popup-{{.Task.Id}}"
                     hx-swap="outerHTML">
                 <span class="material-symbols-outlined icon">done</span>
             </button>
         </div>
-
-
     </div>
 </div>
 
