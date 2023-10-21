@@ -14,6 +14,16 @@
 
     <td class="task-trigger">
         {{.Trigger }}
+
+        {{ if eq .Trigger "audio" }}
+        <span class="material-symbols-outlined">music_note</span>
+
+        {{ else if eq .Trigger "popup"}}
+        <span class="material-symbols-outlined">ad_group</span>
+
+        {{ else if eq .Trigger "webhook"}}
+        <span class="material-symbols-outlined">phishing</span>
+        {{ end }}
     </td>
 </tr>
 {{ end }}
