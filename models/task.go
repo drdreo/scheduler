@@ -178,7 +178,6 @@ func (m TaskDBModel) InsertSchedule(schedule *Scheduler) (*Scheduler, error) {
 	return schedule, nil
 }
 
-
 func (m TaskDBModel) InsertOne(author string, task *Task) (*Scheduler, error) {
 	dbName := "SchedulerCluster"
 	collectionName := "schedules"

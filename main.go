@@ -186,7 +186,7 @@ func connectToMongo() *mongo.Client {
 		panic(err)
 	}
 
-	log.Println("Connected to MongoDB!\n")
+	log.Println("Connected to MongoDB!")
 
 	return client
 }
