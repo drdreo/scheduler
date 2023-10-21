@@ -3,7 +3,7 @@
 FROM golang:1.21
 
 # Set destination for COPY
-WORKDIR /app/
+WORKDIR /app
 
 # Download Go modules
 COPY go.mod go.sum ./
@@ -11,9 +11,9 @@ RUN go mod download
 
 # Copy the source code. Note the slash at the end, as explained in
 # https://docs.docker.com/engine/reference/builder/#copy
-COPY . /app/.
+COPY . .
 
-# Build
+# Build the Go application and name the binary "out"
 RUN CGO_ENABLED=0 GOOS=linux go build -o out
 
 # Optional:
@@ -25,4 +25,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Run
-CMD ["/out"]
+CMD ["/app/out"]
