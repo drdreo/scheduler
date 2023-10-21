@@ -81,6 +81,15 @@ func main() {
 }
 
 func loadEnv() {
+	isProd := os.Getenv("APP_ENV") == "production"
+
+	if isProd {
+		// In production, env vars should already be set by the hosting provider, we can access them directly without using godotenv.
+		return
+	}
+
+	log.Print("Local dev - trying to read environment variables from .env")
+	// Load environment variables from a .env file for local development.
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
