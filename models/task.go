@@ -1,6 +1,12 @@
 package models
 
 import (
+	"context"
+	"errors"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"scheduler/utils"
 	"sort"
 	"time"
@@ -119,4 +125,107 @@ func SortTasks(tasks []*Task) {
 
 		return remainingTimeA < remainingTimeB
 	})
+}
+
+// https://github.com/mongodb-university/atlas_starter_go/blob/master/main.go
+type TaskDBModel struct {
+	Client *mongo.Client
+}
+
+func (m TaskDBModel) GetScheduleByAuthor() (*Scheduler, error) {
+	author := "1337"
+	dbName := "SchedulerCluster"
+	collectionName := "schedules"
+	collection := m.Client.Database(dbName).Collection(collectionName)
+
+	var result Scheduler
+	filter := bson.D{{"author", author}}
+	err := collection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			// if we dont find it in the DB, we create a new one
+			newSchedule := Scheduler{
+				Author: author,
+				Tasks:  []*Task{},
+			}
+			m.InsertSchedule(&newSchedule)
+			return &newSchedule, nil
+		} else {
+			log.Printf("Something went wrong trying to find scheduler for %s", author)
+			return nil, err
+		}
+	}
+	log.Println("Found a document with ", result)
+	return &result, nil
+}
+
+func (m TaskDBModel) InsertSchedule(schedule *Scheduler) (*Scheduler, error) {
+	log.Printf("[INFO] Inserting new schedule for author[%s]", schedule.Author)
+
+	dbName := "SchedulerCluster"
+	collectionName := "schedules"
+	collection := m.Client.Database(dbName).Collection(collectionName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := collection.InsertOne(ctx, schedule)
+	if err != nil {
+		log.Println("[ERROR] Something went wrong trying to insert a task:")
+		panic(err)
+	}
+
+	return schedule, nil
+}
+
+
+func (m TaskDBModel) InsertOne(author string, task *Task) (*Scheduler, error) {
+	dbName := "SchedulerCluster"
+	collectionName := "schedules"
+	collection := m.Client.Database(dbName).Collection(collectionName)
+
+	filter := bson.D{{"author", author}}
+	update := bson.D{
+		{"$push", bson.D{
+			{"tasks", task},
+		}},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var result *mongo.SingleResult
+	result = collection.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After))
+	if result.Err() != nil {
+		log.Println("[ERROR] Something went wrong trying to insert a task:")
+		panic(result.Err())
+	}
+
+	_schedule := Scheduler{}
+	decodeErr := result.Decode(&_schedule)
+	if decodeErr != nil {
+		log.Println("[ERROR] Something went wrong trying to decode the document:")
+		panic(decodeErr)
+	}
+	return &_schedule, nil
+}
+
+func (m TaskDBModel) ReplaceSchedule(scheduler *Scheduler) error {
+	author := "1337"
+	dbName := "SchedulerCluster"
+	collectionName := "tasks"
+	collection := m.Client.Database(dbName).Collection(collectionName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.D{{"author", author}}
+
+	_, err := collection.ReplaceOne(ctx, filter, scheduler)
+	if err != nil {
+		log.Println("Something went wrong trying to update one document:")
+		return err
+	}
+
+	return nil
 }

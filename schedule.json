@@ -1,16 +1,17 @@
 {
+    "Author": "",
     "tasks": [
         {
             "id": "asdasdasdas",
             "name": "Stir pot",
             "schedule": "in 2h",
-            "activatedTime": "2023-10-20T23:13:39.9354015+02:00"
+            "activatedTime": null
         },
         {
             "id": "harahar",
             "name": "Try more reading",
             "schedule": "in 6h",
-            "activatedTime": "2023-10-20T23:13:39.9354015+02:00"
+            "activatedTime": null
         },
         {
             "id": "920D5CB2-9201-D255-75B7-D75F0D4064F1",
@@ -34,6 +35,12 @@
             "id": "B489C5A7-3AE8-31B8-DF10-AD6ECFF235BF",
             "name": "lydia",
             "schedule": "now",
+            "activatedTime": null
+        },
+        {
+            "id": "64CA50E2-10DF-D080-1D62-E19DDA2E38BB",
+            "name": "Task",
+            "schedule": "at 19:00",
             "activatedTime": null
         }
     ]

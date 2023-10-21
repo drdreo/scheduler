@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"io"
 	"log"
 	"net/http"
@@ -10,6 +14,7 @@ import (
 	"scheduler/models"
 	"scheduler/utils"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 func getPort() string {
@@ -25,16 +30,29 @@ func getPort() string {
 
 func main() {
 	log.Println("main running... ")
-	router := gin.Default()
 
+	loadEnv()
+
+	router := gin.Default()
 	templates := getTemplateFiles("templates")
 	router.LoadHTMLFiles(templates...)
 
+	client := connectToMongo()
+	// Defer the disconnection of the client
+	defer func() {
+		log.Println("[INFO] Disconnecting mongo client")
+		if err := client.Disconnect(context.Background()); err != nil {
+			log.Println("Error disconnecting from MongoDB:", err)
+		}
+	}()
+
+	taskDB := models.TaskDBModel{Client: client}
+
 	streamController := controllers.NewStreamController()
 
-	taskController := controllers.NewTaskController(streamController, templates)
+	taskController := controllers.NewTaskController(streamController, templates, &taskDB)
 	taskController.RegisterAllTasksSchedules()
-	taskController.RegisterRefreshInterval()
+	//	taskController.RegisterRefreshInterval()
 
 	router.Static("/static", "./static")
 	router.GET("/", func(c *gin.Context) {
@@ -50,34 +68,8 @@ func main() {
 	router.PUT("/tasks/delete", taskController.TasksDelete)
 	router.PUT("/tasks/:id/done", taskController.TaskDone)
 
-	// Add event-streaming headers
 	router.GET("/stream", controllers.StreamHeadersMiddleware(), streamController.ServeHTTP(), func(c *gin.Context) {
-		v, ok := c.Get("clientChan")
-		if !ok {
-			return
-		}
-		clientChan, ok := v.(controllers.ClientChan)
-		if !ok {
-			return
-		}
-		c.Stream(func(w io.Writer) bool {
-			if event, ok := <-clientChan; ok {
-				log.Printf("[DEBUG] Trying to send event[%d] - %s", event.Type, event.Message)
-
-				switch event.Type {
-				case controllers.EVENT_TASK_ALERT:
-					handleTaskAlertEvent(c, event, taskController)
-				case controllers.EVENT_TASKS_UPDATE:
-					handleTasksUpdateEvent(c, taskController)
-				default:
-					// generic "message" event handler
-					c.SSEvent("message", event.Message)
-				}
-
-				return true
-			}
-			return false
-		})
+		handleStream(c, taskController)
 	})
 
 	router.GET("/data", dataHandler)
@@ -86,6 +78,42 @@ func main() {
 		log.Panic(err)
 	}
 
+}
+
+func loadEnv() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+}
+
+func handleStream(c *gin.Context, taskController *controllers.TaskController) {
+	v, ok := c.Get("clientChan")
+	if !ok {
+		return
+	}
+	clientChan, ok := v.(controllers.ClientChan)
+	if !ok {
+		return
+	}
+	c.Stream(func(w io.Writer) bool {
+		if event, ok := <-clientChan; ok {
+			log.Printf("[DEBUG] Trying to send event[%d] - %s", event.Type, event.Message)
+
+			switch event.Type {
+			case controllers.EVENT_TASK_ALERT:
+				handleTaskAlertEvent(c, event, taskController)
+			case controllers.EVENT_TASKS_UPDATE:
+				handleTasksUpdateEvent(c, taskController)
+			default:
+				// generic "message" event handler
+				c.SSEvent("message", event.Message)
+			}
+
+			return true
+		}
+		return false
+	})
 }
 
 func handleTaskAlertEvent(c *gin.Context, event *controllers.Event, taskController *controllers.TaskController) {
@@ -136,4 +164,29 @@ func dataHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, &scheduler)
+}
+
+func connectToMongo() *mongo.Client {
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	mongoUri := os.Getenv("MONGO_URI")
+	opts := options.Client().ApplyURI(mongoUri).SetServerAPIOptions(serverAPI)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, opts)
+	if err != nil {
+		panic(err)
+	}
+
+	err = client.Ping(ctx, nil)
+
+	if err != nil {
+		log.Println("There was a problem connecting to your Atlas cluster. Check that the URI includes a valid username and password, and that your IP address has been added to the access list. Error: ")
+		panic(err)
+	}
+
+	log.Println("Connected to MongoDB!\n")
+
+	return client
 }

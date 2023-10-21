@@ -1,5 +1,6 @@
 package models
 
 type Scheduler struct {
-	Tasks []*Task `json:"tasks"`
+	Author string
+	Tasks  []*Task `json:"tasks"`
 }
