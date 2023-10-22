@@ -38,7 +38,7 @@ type TaskVM struct {
 	IsSoon        bool
 	RemainingTime string
 	ActivatedTime string
-	TargetTime    string
+	TargetTime    *time.Time
 }
 
 func (task *Task) ToTaskVM() *TaskVM {
@@ -55,7 +55,8 @@ func (task *Task) ToTaskVM() *TaskVM {
 		remainingTime := task.GetRemainingTime()
 		viewTask.RemainingTime = task.GetRemainingTime().String()
 		viewTask.IsSoon = remainingTime.Seconds() < 60
-		viewTask.TargetTime = time.Now().Add(*remainingTime).Format(time.TimeOnly)
+		targetTime := time.Now().Add(*remainingTime)
+		viewTask.TargetTime = &targetTime
 	}
 
 	return viewTask

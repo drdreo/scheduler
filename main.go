@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -39,7 +40,14 @@ func main() {
 
 	router := gin.Default()
 	templates := getTemplateFiles("templates")
-	router.LoadHTMLFiles(templates...)
+
+	myFuncMap := template.FuncMap{
+		"formatAsDate": utils.FormatAsDate,
+	}
+	router.SetFuncMap(myFuncMap)
+	tpl, _ := template.New("any").Funcs(myFuncMap).ParseFiles(templates...)
+
+	router.SetHTMLTemplate(tpl)
 
 	client := connectToMongo()
 	// Defer the disconnection of the client
@@ -54,7 +62,7 @@ func main() {
 
 	streamController := controllers.NewStreamController()
 
-	taskController := controllers.NewTaskController(streamController, templates, &taskDB)
+	taskController := controllers.NewTaskController(streamController, tpl, &taskDB)
 	taskController.RegisterAllTasksSchedules()
 	//	taskController.RegisterRefreshInterval()
 

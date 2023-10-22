@@ -124,3 +124,8 @@ func RemoveSliceQck(s []interface{}, i int) []interface{} {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }
+
+func FormatAsDate(t time.Time) string {
+	loc, _ := time.LoadLocation("Europe/Stockholm")
+	return t.In(loc).Format(time.TimeOnly)
+}

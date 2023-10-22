@@ -23,14 +23,9 @@ type TaskController struct {
 	taskRegistry map[string]*time.Timer
 }
 
-func NewTaskController(streamController *StreamController, templates []string, taskDBM *models.TaskDBModel) *TaskController {
-	tmpl, err := template.ParseFiles(templates...)
-	if err != nil {
-		log.Fatal().Msgf("Failed to parse templates: %v", err)
-	}
-
+func NewTaskController(streamController *StreamController, template *template.Template, taskDBM *models.TaskDBModel) *TaskController {
 	return &TaskController{
-		template:     tmpl,
+		template:     template,
 		sc:           streamController,
 		taskDBM:      taskDBM,
 		taskRegistry: make(map[string]*time.Timer),

@@ -13,7 +13,8 @@
                 {{.Schedule }}
             </div>
             {{ if .TargetTime }}
-            <div class="task__time"><span class="material-symbols-outlined icon">alarm</span> {{ .TargetTime }}</div>
+            <div class="task__time"><span class="material-symbols-outlined icon">alarm</span>
+                {{ .TargetTime | formatAsDate}}</div>
             {{ end }}
         </div>
     </td>
