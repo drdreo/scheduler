@@ -174,7 +174,7 @@ func getTemplateFiles(directory string) []string {
 
 	log.Debug().Msg("Found templates:")
 	for _, file := range files {
-		log.Debug().Msgf(" - %s", file)
+		log.Debug().Str("file", file).Msg(" - ")
 	}
 
 	return files

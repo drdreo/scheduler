@@ -164,14 +164,14 @@ func (m TaskDBModel) GetScheduleByAuthor() (*Scheduler, error) {
 				Tasks:  []*Task{},
 			}
 			m.InsertSchedule(&newSchedule)
-			log.Debug().Msgf("Could not find existing schedule, created new one - %s", author)
+			log.Debug().Str("author", author).Msg("Could not find existing schedule, created new one")
 			return &newSchedule, nil
 		} else {
 			log.Error().Err(err).Msgf("Something went wrong trying to find scheduler for %s", author)
 			return nil, err
 		}
 	}
-	log.Debug().Msgf("Found existing schedule - %s", result.Author)
+	log.Debug().Str("author", result.Author).Msg("Found existing schedule")
 	return &result, nil
 }
 

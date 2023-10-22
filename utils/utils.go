@@ -113,7 +113,7 @@ func RenderTemplate(template *template.Template, tmplName string, data interface
 
 	err := template.ExecuteTemplate(&tplContent, tmplName, data)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to render template - %s", tmplName)
+		log.Error().Err(err).Str("tpl", tmplName).Msg("Failed to render template")
 		return "", err
 	}
 
