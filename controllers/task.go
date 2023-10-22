@@ -18,8 +18,9 @@ const useDB = true
 type TaskController struct {
 	template *template.Template
 	// ... add fields like database connection or services here.
-	sc      *StreamController
-	taskDBM *models.TaskDBModel
+	sc           *StreamController
+	taskDBM      *models.TaskDBModel
+	taskRegistry map[string]*time.Timer
 }
 
 func NewTaskController(streamController *StreamController, templates []string, taskDBM *models.TaskDBModel) *TaskController {
@@ -29,9 +30,10 @@ func NewTaskController(streamController *StreamController, templates []string, t
 	}
 
 	return &TaskController{
-		template: tmpl,
-		sc:       streamController,
-		taskDBM:  taskDBM,
+		template:     tmpl,
+		sc:           streamController,
+		taskDBM:      taskDBM,
+		taskRegistry: make(map[string]*time.Timer),
 	}
 }
 
@@ -89,17 +91,6 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 	c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Name": formData.Name})
 }
 
-func (tc *TaskController) TasksUpdate(c *gin.Context) {
-
-	for {
-		taskUpdateTpl := tc.GetTasksUpdate()
-		c.SSEvent("tasks-update", taskUpdateTpl)
-		c.Writer.Flush() // Flush the response to ensure the data is sent immediately
-
-		time.Sleep(1 * time.Second)
-	}
-}
-
 func (tc *TaskController) GetTasksUpdate() string {
 	tasks := tc.getTasks()
 	viewTasks := models.GetViewTasks(tasks)
@@ -143,18 +134,28 @@ func (tc *TaskController) RegisterRefreshInterval() {
 }
 
 func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
-	go func(task *models.Task) {
-		taskDuration, _ := utils.ParseDuration(task.Schedule)
-		log.Printf("Task '%s' registered in - %s", task.Name, taskDuration)
+	taskDuration, _ := utils.ParseDuration(task.Schedule)
+	log.Printf("[DEBUG] Register task - '%s' - in %s", task.Name, taskDuration)
 
-		time.Sleep(taskDuration)
-
-		log.Printf("Task expired - %s", task.Name)
+	timer := time.AfterFunc(taskDuration, func() {
+		log.Printf("[DEBUG] Task expired - %s", task.Name)
 		tc.sc.Message <- &Event{
 			Message: task,
 			Type:    EVENT_TASK_ALERT,
 		}
-	}(task)
+		tc.UnregisterTask(task)
+	})
+
+	tc.taskRegistry[task.Id] = timer
+}
+
+func (tc *TaskController) UnregisterTask(task *models.Task) {
+	log.Printf("[DEBUG] Unregister task - '%s' - attempt", task.Name)
+	if timer, exists := tc.taskRegistry[task.Id]; exists {
+		timer.Stop()
+		delete(tc.taskRegistry, task.Id)
+		log.Printf("[INFO] Unregister task - '%s' - successful", task.Name)
+	}
 }
 
 func (tc *TaskController) GetAlertTpl(task *models.Task) string {
@@ -217,6 +218,7 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 		for _, id := range formData.TaskIds {
 			if id == task.Id {
 				task.ActivatedTime = nil
+				tc.UnregisterTask(task)
 			}
 		}
 	}
@@ -241,37 +243,20 @@ func (tc *TaskController) TasksDelete(c *gin.Context) {
 		return
 	}
 
-	taskIds, _ := c.GetPostFormArray("task-ids")
-
-	log.Printf("ids %s", taskIds)
-
 	scheduler := tc.readSchedulerData()
-	tasksToKeep := make([]*models.Task, 0, len(scheduler.Tasks))
+	tasksToDelete := make([]*models.Task, 0, len(formData.TaskIds))
 	for _, task := range scheduler.Tasks {
-		found := false
-
 		for _, id := range formData.TaskIds {
 			if id == task.Id {
-				found = true
+				tasksToDelete = append(tasksToDelete, task)
+				tc.UnregisterTask(task)
 				break
 			}
 		}
-
-		if !found {
-			tasksToKeep = append(tasksToKeep, task)
-		}
 	}
 
-	scheduler.Tasks = tasksToKeep
-
-	models.SortTasks(scheduler.Tasks)
-
-	err := tc.writeSchedulerData(scheduler)
-	if err != nil {
-		log.Println("Warning: Could not write scheduler data")
-	}
-
-	viewTasks := models.GetViewTasks(scheduler.Tasks)
+	updatedSchedule, _ := tc.taskDBM.DeleteTasks(tasksToDelete)
+	viewTasks := models.GetViewTasks(updatedSchedule.Tasks)
 
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
 		Tasks: viewTasks,
@@ -341,7 +326,7 @@ func (tc *TaskController) getTasks() []*models.Task {
 }
 
 func (tc *TaskController) insertNewTask(author string, newTask *models.Task) error {
-	_, err := tc.taskDBM.InsertOne(author, newTask)
+	_, err := tc.taskDBM.InsertTask(author, newTask)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,13 @@
 {{ define "response/new-task.html" }}
 
-{{ if not .Error}}
-<div hx-get="/tasks/new" hx-trigger="load delay:3s">Successfully added a new task {{.Name}}</div>
-{{ else }}
-<div>Failed to create task: {{.Error}} </div>
-{{ end }}
+
+<div hx-get="/tasks/new" hx-trigger="load delay:3s">
+
+    {{ if not .Error}}
+    <div>Successfully added a new task {{.Name}}</div>
+    {{ else }}
+    <div>Failed to create task: {{.Error}} </div>
+    {{ end }}
+
+</div>
 {{ end }}

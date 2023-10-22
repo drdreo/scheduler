@@ -190,41 +190,10 @@ func (m TaskDBModel) InsertSchedule(schedule *Scheduler) (*Scheduler, error) {
 	return schedule, nil
 }
 
-func (m TaskDBModel) InsertOne(author string, task *Task) (*Scheduler, error) {
-	dbName := "SchedulerCluster"
-	collectionName := "schedules"
-	collection := m.Client.Database(dbName).Collection(collectionName)
-
-	filter := bson.D{{"author", author}}
-	update := bson.D{
-		{"$push", bson.D{
-			{"tasks", task},
-		}},
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	var result *mongo.SingleResult
-	result = collection.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After))
-	if result.Err() != nil {
-		log.Println("[ERROR] Something went wrong trying to insert a task:")
-		panic(result.Err())
-	}
-
-	_schedule := Scheduler{}
-	decodeErr := result.Decode(&_schedule)
-	if decodeErr != nil {
-		log.Println("[ERROR] Something went wrong trying to decode the document:")
-		panic(decodeErr)
-	}
-	return &_schedule, nil
-}
-
 func (m TaskDBModel) ReplaceSchedule(scheduler *Scheduler) error {
 	author := "1337"
 	dbName := "SchedulerCluster"
-	collectionName := "tasks"
+	collectionName := "schedules"
 	collection := m.Client.Database(dbName).Collection(collectionName)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -239,4 +208,60 @@ func (m TaskDBModel) ReplaceSchedule(scheduler *Scheduler) error {
 	}
 
 	return nil
+}
+
+func (m TaskDBModel) InsertTask(author string, task *Task) (*Scheduler, error) {
+	dbName := "SchedulerCluster"
+	collectionName := "schedules"
+	collection := m.Client.Database(dbName).Collection(collectionName)
+
+	filter := bson.D{{"author", author}}
+	update := bson.D{
+		{"$push", bson.D{
+			{"tasks", task},
+		}},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+
+	var updatedSchedule *Scheduler
+
+	err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedSchedule)
+	if err != nil {
+		log.Println("[ERROR] Something went wrong trying to insert a task:")
+		return nil, err
+	}
+
+	return updatedSchedule, nil
+}
+
+func (m TaskDBModel) DeleteTasks(tasks []*Task) (*Scheduler, error) {
+	author := "1337"
+	dbName := "SchedulerCluster"
+	collectionName := "schedules"
+	collection := m.Client.Database(dbName).Collection(collectionName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.D{{"author", author}}
+
+	update := bson.M{
+		"$pull": bson.M{"tasks": bson.M{"$in": tasks}},
+	}
+
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+
+	var updatedSchedule *Scheduler
+
+	err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedSchedule)
+	if err != nil {
+		log.Println("Something went wrong trying to update one document:")
+		return nil, err
+	}
+
+	return updatedSchedule, nil
 }

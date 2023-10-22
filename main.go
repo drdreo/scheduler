@@ -62,7 +62,7 @@ func main() {
 	router.GET("/tasks", taskController.GetTasks)
 	router.GET("/tasks/new", taskController.GetNewTaskForm) // FOR HTMX
 	router.POST("/tasks/new", taskController.NewTask)
-	router.GET("/tasks-update", taskController.TasksUpdate) // FOR HTMX
+	//	router.GET("/tasks-update", taskController.TasksUpdate) // FOR HTMX
 	router.PUT("/tasks/activate", taskController.TasksActivate)
 	router.PUT("/tasks/deactivate", taskController.TasksDeactivate)
 	router.PUT("/tasks/delete", taskController.TasksDelete)
