@@ -168,8 +168,10 @@ func (tc *TaskController) ResetTask(task *models.Task) {
 		taskDuration, _ := utils.ParseDuration(task.Schedule)
 		timer.Reset(taskDuration)
 
-		tc.taskDBM.UpdateTaskActivatedTime(task)
-		log.Info().Str("task", task.Name).Msg("Reset task")
+		err := tc.taskDBM.UpdateTaskActivatedTime(task)
+		if err == nil {
+			log.Info().Str("task", task.Name).Msg("Reset task")
+		}
 	}
 }
 
