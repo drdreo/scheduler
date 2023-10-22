@@ -53,7 +53,7 @@ func (sc *StreamController) listen() {
 		// Add new available client
 		case client := <-sc.NewClients:
 			sc.TotalClients[client] = true
-			log.Info().Msg("Client added. %d registered clients", len(sc.TotalClients))
+			log.Info().Msgf("Client added. %d registered clients", len(sc.TotalClients))
 
 		// Remove closed client
 		case client := <-sc.ClosedClients:
