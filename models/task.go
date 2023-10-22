@@ -175,7 +175,7 @@ func (m TaskDBModel) GetScheduleByAuthor() (*Scheduler, error) {
 }
 
 func (m TaskDBModel) InsertSchedule(schedule *Scheduler) (*Scheduler, error) {
-	log.Printf("[INFO] Inserting new schedule for author[%s]", schedule.Author)
+	log.Info().Str("author", schedule.Author).Msg("Inserting new schedule")
 
 	dbName := "SchedulerCluster"
 	collectionName := "schedules"

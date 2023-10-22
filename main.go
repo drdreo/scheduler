@@ -87,11 +87,12 @@ func main() {
 func loadEnv() {
 	isProd := os.Getenv("APP_ENV") == "production"
 	if isProd {
+		log.Info().Msg("Production environment detected")
 		// In production, env vars should already be set by the hosting provider, we can access them directly without using godotenv.
 		return
 	}
 
-	log.Print("Local dev - trying to read environment variables from .env")
+	log.Debug().Msg("Local dev - trying to read environment variables from .env")
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error loading .env file")
@@ -109,7 +110,7 @@ func handleStream(c *gin.Context, taskController *controllers.TaskController) {
 	}
 	c.Stream(func(w io.Writer) bool {
 		if event, ok := <-clientChan; ok {
-			log.Printf("[DEBUG] Trying to send event[%d] - %s", event.Type, event.Message)
+			log.Debug().Int("type", event.Type).Any("message", event.Message).Msg("Sending event")
 
 			switch event.Type {
 			case controllers.EVENT_TASK_ALERT:
@@ -137,7 +138,7 @@ func handleTaskAlertEvent(c *gin.Context, event *controllers.Event, taskControll
 		}
 		c.SSEvent(eventName, alertTpl)
 	} else {
-		log.Print("[WARN] Event and message type dont match")
+		log.Error().Msg("Event and message type dont match")
 	}
 }
 

@@ -62,16 +62,21 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 		return
 	}
 
+	log.Info().Str("task", formData.Name).Msg("Adding new task")
+
 	_, err := utils.ParseDuration(formData.Schedule)
 	if err != nil {
-		log.Warn().Msgf("Failed to parse schedule - %s", formData.Schedule)
+		log.Warn().Str("schedule", formData.Schedule).Msg("Failed to parse schedule")
 		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Error": "FAILED TO PARSE SCHEDULE"})
 		return
 	}
 
 	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule, Trigger: formData.Trigger}
 
-	err = tc.insertNewTask("1337", &newTask)
+	author := "1337"
+	err = tc.insertNewTask(author, &newTask)
+
+	log.Info().Str("task", formData.Name).Str("author", author).Msg("Added new task")
 
 	tc.sc.Message <- &Event{
 		Message: nil,
@@ -129,10 +134,10 @@ func (tc *TaskController) RegisterRefreshInterval() {
 
 func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 	taskDuration, _ := utils.ParseDuration(task.Schedule)
-	log.Debug().Msgf("Register task - '%s' - in %s", task.Name, taskDuration)
+	log.Debug().Str("task", task.Name).Dur("duration", taskDuration).Msg("Register task")
 
 	timer := time.AfterFunc(taskDuration, func() {
-		log.Debug().Msgf("Task expired - %s", task.Name)
+		log.Debug().Str("task", task.Name).Msg("Task expired ")
 		tc.sc.Message <- &Event{
 			Message: task,
 			Type:    EVENT_TASK_ALERT,
@@ -144,11 +149,12 @@ func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 }
 
 func (tc *TaskController) UnregisterTask(task *models.Task) {
-	log.Debug().Msgf("Unregistering task - '%s'", task.Name)
+	log.Debug().Str("task", task.Name).Msg("Unregistering task")
+
 	if timer, exists := tc.taskRegistry[task.Id]; exists {
 		timer.Stop()
 		delete(tc.taskRegistry, task.Id)
-		log.Info().Msgf("Unregistered task - '%s'", task.Name)
+		log.Info().Str("task", task.Name).Msg("Unregistered task")
 	}
 }
 
@@ -216,13 +222,15 @@ func (tc *TaskController) TasksDelete(c *gin.Context) {
 	if err := c.Bind(formData); err != nil {
 		return
 	}
-	log.Debug().Msgf("Tasks deleted %s", formData.TaskIds)
+	log.Debug().Strs("taskIds", formData.TaskIds).Msg("Deleting tasks")
 
 	scheduler := tc.readSchedulerData()
 
 	tc.updateTaskActivationByIds(scheduler.Tasks, formData.TaskIds, nil)
 
 	updatedSchedule, _ := tc.taskDBM.DeleteTasks(formData.TaskIds)
+	log.Info().Strs("taskIds", formData.TaskIds).Msg("Deleted tasks")
+
 	viewTasks := models.GetViewTasks(updatedSchedule.Tasks)
 
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
@@ -232,7 +240,7 @@ func (tc *TaskController) TasksDelete(c *gin.Context) {
 
 func (tc *TaskController) TaskDone(c *gin.Context) {
 	taskId := c.Param("id")
-	log.Debug().Msgf("Task doned %s", taskId)
+	log.Debug().Str("taskId", taskId).Msg("Task done")
 
 	tc.sc.Message <- &Event{
 		Message: nil,
