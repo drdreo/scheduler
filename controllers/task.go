@@ -137,7 +137,13 @@ func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 			Message: task,
 			Type:    EVENT_TASK_ALERT,
 		}
-		tc.UnregisterTask(task)
+
+		isRepetitive := utils.IsRepetitiveSchedule(task.Schedule)
+		if isRepetitive {
+			tc.ResetTask(task)
+		} else {
+			tc.UnregisterTask(task)
+		}
 	})
 
 	tc.taskRegistry[task.Id] = timer
@@ -150,6 +156,20 @@ func (tc *TaskController) UnregisterTask(task *models.Task) {
 		timer.Stop()
 		delete(tc.taskRegistry, task.Id)
 		log.Info().Str("task", task.Name).Msg("Unregistered task")
+	}
+}
+
+func (tc *TaskController) ResetTask(task *models.Task) {
+	log.Debug().Str("task", task.Name).Msg("Resetting task")
+
+	if timer, exists := tc.taskRegistry[task.Id]; exists {
+		newActivatedTime := time.Now()
+		task.ActivatedTime = &newActivatedTime
+		taskDuration, _ := utils.ParseDuration(task.Schedule)
+		timer.Reset(taskDuration)
+
+		tc.taskDBM.UpdateTaskActivatedTime(task)
+		log.Info().Str("task", task.Name).Msg("Reset task")
 	}
 }
 

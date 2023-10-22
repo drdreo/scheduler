@@ -44,6 +44,10 @@ func ParseDuration(input string) (time.Duration, error) {
 	return time.ParseDuration(timeValue)
 }
 
+func IsRepetitiveSchedule(schedule string) bool {
+	return strings.Contains(schedule, "every")
+}
+
 func fixTimeUnit(timeValue string) string {
 	var fixedTime = timeValue
 

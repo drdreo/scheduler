@@ -63,11 +63,11 @@ func (task *Task) ToTaskVM() *TaskVM {
 }
 
 type Task struct {
-	Id            string      `json:"id"`
-	Name          string      `json:"name"`
-	Schedule      string      `json:"schedule"`
-	ActivatedTime *time.Time  `json:"activatedTime"` // optional
-	Trigger       TaskTrigger `json: "trigger"`
+	Id            string      `json:"id" bson:"id"`
+	Name          string      `json:"name" bson:"name"`
+	Schedule      string      `json:"schedule" bson:"schedule"`
+	ActivatedTime *time.Time  `json:"activatedTime" bson:"activatedTime"` // optional
+	Trigger       TaskTrigger `json:"trigger" bson:"trigger"`
 }
 
 func (task *Task) GetRemainingTime() *time.Duration {
@@ -240,6 +240,35 @@ func (m TaskDBModel) InsertTask(author string, task *Task) (*Scheduler, error) {
 	}
 
 	return updatedSchedule, nil
+}
+
+func (m TaskDBModel) UpdateTaskActivatedTime(task *Task) error {
+	dbName := "SchedulerCluster"
+	collectionName := "schedules"
+	collection := m.Client.Database(dbName).Collection(collectionName)
+
+	author := "1337"
+	filter := bson.D{
+		{"author", author},
+		{"tasks", bson.D{
+			{"$elemMatch", bson.D{{"id", task.Id}}},
+		}},
+	}
+	update := bson.D{
+		{"$set", bson.D{
+			{"tasks.$.activatedTime", task.ActivatedTime},
+		}},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	res := collection.FindOneAndUpdate(ctx, filter, update)
+	if res.Err() != nil {
+		log.Error().Err(res.Err()).Msg("Something went wrong trying to update a task")
+		return res.Err()
+	}
+	return nil
 }
 
 func (m TaskDBModel) DeleteTasks(taskIds []string) (*Scheduler, error) {
