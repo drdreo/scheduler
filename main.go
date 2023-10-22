@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"scheduler/controllers"
 	"scheduler/models"
 	"scheduler/utils"
-	"github.com/gin-gonic/gin"
 	"time"
 )
 
@@ -29,7 +30,10 @@ func getPort() string {
 }
 
 func main() {
-	log.Println("main running... ")
+	log.Info().Msg("main running... ")
+
+	// setup logger
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 
 	loadEnv()
 
@@ -40,9 +44,9 @@ func main() {
 	client := connectToMongo()
 	// Defer the disconnection of the client
 	defer func() {
-		log.Println("[INFO] Disconnecting mongo client")
+		log.Info().Msg("Disconnecting mongo client")
 		if err := client.Disconnect(context.Background()); err != nil {
-			log.Println("Error disconnecting from MongoDB:", err)
+			log.Error().Err(err).Msg("Error disconnecting from MongoDB")
 		}
 	}()
 
@@ -75,7 +79,7 @@ func main() {
 	router.GET("/data", dataHandler)
 	err := router.Run(getPort())
 	if err != nil {
-		log.Panic(err)
+		log.Panic().Err(err).Msgf("Could not run app on port: %d", getPort())
 	}
 
 }
@@ -90,7 +94,7 @@ func loadEnv() {
 	log.Print("Local dev - trying to read environment variables from .env")
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal().Err(err).Msg("Error loading .env file")
 	}
 }
 
@@ -156,12 +160,12 @@ func getTemplateFiles(directory string) []string {
 	})
 
 	if err != nil {
-		log.Println("[ERROR] Error walking directory:", err)
+		log.Error().Err(err).Msg("Error walking directory")
 	}
 
-	log.Println("[DEBUG] Found templates:")
+	log.Debug().Msg("Found templates:")
 	for _, file := range files {
-		log.Println("[DEBUG] - ", file)
+		log.Debug().Msgf(" - %s", file)
 	}
 
 	return files
@@ -171,8 +175,7 @@ func dataHandler(c *gin.Context) {
 	var scheduler models.Scheduler
 
 	if err := utils.ParseJSONFile("schedule.json", &scheduler); err != nil {
-		log.Fatal(err)
-		// c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read JSON file"})
+		log.Fatal().Err(err).Msg("Failed to parse schedule.json")
 	}
 
 	c.JSON(http.StatusOK, &scheduler)
@@ -194,11 +197,11 @@ func connectToMongo() *mongo.Client {
 	err = client.Ping(ctx, nil)
 
 	if err != nil {
-		log.Println("There was a problem connecting to your Atlas cluster. Check that the URI includes a valid username and password, and that your IP address has been added to the access list. Error: ")
+		log.Fatal().Err(err).Msg("There was a problem connecting to your Atlas cluster. Check that the URI includes a valid username and password, and that your IP address has been added to the access list. Error: ")
 		panic(err)
 	}
 
-	log.Println("Connected to MongoDB!")
+	log.Info().Msg("Connected to MongoDB!")
 
 	return client
 }

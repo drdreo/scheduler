@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"log"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -53,13 +53,13 @@ func (sc *StreamController) listen() {
 		// Add new available client
 		case client := <-sc.NewClients:
 			sc.TotalClients[client] = true
-			log.Printf("[DEBUG] Client added. %d registered clients", len(sc.TotalClients))
+			log.Info().Msg("Client added. %d registered clients", len(sc.TotalClients))
 
 		// Remove closed client
 		case client := <-sc.ClosedClients:
 			delete(sc.TotalClients, client)
 			close(client)
-			log.Printf("[DEBUG] Removed client. %d registered clients", len(sc.TotalClients))
+			log.Info().Msgf("Removed client. %d registered clients", len(sc.TotalClients))
 
 		// Broadcast message to client
 		case eventMsg := <-sc.Message:

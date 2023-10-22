@@ -16,9 +16,11 @@
 </div>
 
 
-{{ template "tasks/table" .}}
+<div class="tasks-wrapper">
+    {{ template "tasks/new-form" }}
+    {{ template "tasks/table" .}}
+</div>
 
-{{ template "tasks/new-form" }}
 
 {{ template "base/footer" }}
 {{ end }}

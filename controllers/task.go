@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
+	"github.com/rs/zerolog/log"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"scheduler/models"
@@ -26,7 +26,7 @@ type TaskController struct {
 func NewTaskController(streamController *StreamController, templates []string, taskDBM *models.TaskDBModel) *TaskController {
 	tmpl, err := template.ParseFiles(templates...)
 	if err != nil {
-		log.Fatalf("Failed to parse templates: %v", err)
+		log.Fatal().Msgf("Failed to parse templates: %v", err)
 	}
 
 	return &TaskController{
@@ -42,7 +42,7 @@ func (tc *TaskController) GetTasks(c *gin.Context) {
 	checkExpiredTasks(tasks)
 	err := tc.writeTasksData(tasks)
 	if err != nil {
-		log.Fatal("Could not write tasks data")
+		log.Fatal().Msg("Could not write tasks data")
 	}
 
 	viewTasks := models.GetViewTasks(tasks)
@@ -64,20 +64,14 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 
 	_, err := utils.ParseDuration(formData.Schedule)
 	if err != nil {
-		log.Print(err)
+		log.Warn().Msgf("Failed to parse schedule - %s", formData.Schedule)
 		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Error": "FAILED TO PARSE SCHEDULE"})
 		return
 	}
 
 	newTask := models.Task{Id: utils.Uuid(), Name: formData.Name, Schedule: formData.Schedule, Trigger: formData.Trigger}
 
-	if useDB {
-		err = tc.insertNewTask("1337", &newTask)
-	} else {
-		scheduler := tc.readSchedulerData()
-		scheduler.Tasks = append(scheduler.Tasks, &newTask)
-		err = tc.writeSchedulerData(scheduler)
-	}
+	err = tc.insertNewTask("1337", &newTask)
 
 	tc.sc.Message <- &Event{
 		Message: nil,
@@ -104,14 +98,14 @@ func (tc *TaskController) GetTasksUpdate() string {
 func (tc *TaskController) RegisterAllTasksSchedules() {
 	scheduler := tc.readSchedulerData()
 	if scheduler == nil {
-		log.Println("[INFO] Schedule not found. Skipping to register tasks")
+		log.Info().Msg("Schedule not found. Skipping to register tasks")
 		return
 	}
 
 	checkExpiredTasks(scheduler.Tasks)
 	err := tc.writeTasksData(scheduler.Tasks)
 	if err != nil {
-		log.Println("[ERROR] Could not update tasks after checking expirey")
+		log.Error().Msg("Could not update tasks after checking expirey")
 	}
 
 	for _, task := range scheduler.Tasks {
@@ -135,10 +129,10 @@ func (tc *TaskController) RegisterRefreshInterval() {
 
 func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 	taskDuration, _ := utils.ParseDuration(task.Schedule)
-	log.Printf("[DEBUG] Register task - '%s' - in %s", task.Name, taskDuration)
+	log.Debug().Msgf("Register task - '%s' - in %s", task.Name, taskDuration)
 
 	timer := time.AfterFunc(taskDuration, func() {
-		log.Printf("[DEBUG] Task expired - %s", task.Name)
+		log.Debug().Msgf("Task expired - %s", task.Name)
 		tc.sc.Message <- &Event{
 			Message: task,
 			Type:    EVENT_TASK_ALERT,
@@ -150,16 +144,15 @@ func (tc *TaskController) RegisterTaskSchedule(task *models.Task) {
 }
 
 func (tc *TaskController) UnregisterTask(task *models.Task) {
-	log.Printf("[DEBUG] Unregister task - '%s' - attempt", task.Name)
+	log.Debug().Msgf("Unregistering task - '%s'", task.Name)
 	if timer, exists := tc.taskRegistry[task.Id]; exists {
 		timer.Stop()
 		delete(tc.taskRegistry, task.Id)
-		log.Printf("[INFO] Unregister task - '%s' - successful", task.Name)
+		log.Info().Msgf("Unregistered task - '%s'", task.Name)
 	}
 }
 
 func (tc *TaskController) GetAlertTpl(task *models.Task) string {
-
 	var tplName string
 	if task.Trigger == "popup" {
 		tplName = "alerts/popup"
@@ -182,22 +175,12 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 
 	scheduler := tc.readSchedulerData()
 
-	for _, task := range scheduler.Tasks {
-		for _, id := range formData.TaskIds {
-			if id == task.Id {
-				activatedTime := time.Now()
-				task.ActivatedTime = &activatedTime
-
-				tc.RegisterTaskSchedule(task)
-			}
-		}
-	}
-
-	models.SortTasks(scheduler.Tasks)
+	activatedTime := time.Now()
+	tc.updateTaskActivationByIds(scheduler.Tasks, formData.TaskIds, &activatedTime)
 
 	err := tc.writeSchedulerData(scheduler)
 	if err != nil {
-		log.Fatal("Could not write scheduler data")
+		log.Fatal().Msg("Could not write scheduler data")
 	}
 
 	viewTasks := models.GetViewTasks(scheduler.Tasks)
@@ -214,20 +197,11 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 
 	scheduler := tc.readSchedulerData()
 
-	for _, task := range scheduler.Tasks {
-		for _, id := range formData.TaskIds {
-			if id == task.Id {
-				task.ActivatedTime = nil
-				tc.UnregisterTask(task)
-			}
-		}
-	}
-
-	models.SortTasks(scheduler.Tasks)
+	tc.updateTaskActivationByIds(scheduler.Tasks, formData.TaskIds, nil)
 
 	err := tc.writeSchedulerData(scheduler)
 	if err != nil {
-		log.Println("Warning: Could not write scheduler data")
+		log.Warn().Msg("Warning: Could not write scheduler data")
 	}
 
 	viewTasks := models.GetViewTasks(scheduler.Tasks)
@@ -242,20 +216,13 @@ func (tc *TaskController) TasksDelete(c *gin.Context) {
 	if err := c.Bind(formData); err != nil {
 		return
 	}
+	log.Debug().Msgf("Tasks deleted %s", formData.TaskIds)
 
 	scheduler := tc.readSchedulerData()
-	tasksToDelete := make([]*models.Task, 0, len(formData.TaskIds))
-	for _, task := range scheduler.Tasks {
-		for _, id := range formData.TaskIds {
-			if id == task.Id {
-				tasksToDelete = append(tasksToDelete, task)
-				tc.UnregisterTask(task)
-				break
-			}
-		}
-	}
 
-	updatedSchedule, _ := tc.taskDBM.DeleteTasks(tasksToDelete)
+	tc.updateTaskActivationByIds(scheduler.Tasks, formData.TaskIds, nil)
+
+	updatedSchedule, _ := tc.taskDBM.DeleteTasks(formData.TaskIds)
 	viewTasks := models.GetViewTasks(updatedSchedule.Tasks)
 
 	c.HTML(http.StatusOK, "tasks/table-body", models.TasksUpdateData{
@@ -265,7 +232,7 @@ func (tc *TaskController) TasksDelete(c *gin.Context) {
 
 func (tc *TaskController) TaskDone(c *gin.Context) {
 	taskId := c.Param("id")
-	log.Printf("Task doned %s", taskId)
+	log.Debug().Msgf("Task doned %s", taskId)
 
 	tc.sc.Message <- &Event{
 		Message: nil,
@@ -280,12 +247,12 @@ func (tc *TaskController) readSchedulerData() *models.Scheduler {
 	if useDB {
 		scheduler, err := tc.taskDBM.GetScheduleByAuthor()
 		if err != nil {
-			log.Println("[ERROR] Could not query schedule")
+			log.Error().Msg("Could not query schedule")
 		}
 		return scheduler
 	} else {
 		if err := utils.ParseJSONFile("schedule.json", &scheduler); err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
 	}
 
@@ -297,7 +264,7 @@ func (tc *TaskController) writeSchedulerData(scheduler *models.Scheduler) error 
 	if useDB {
 		err := tc.taskDBM.ReplaceSchedule(scheduler)
 		if err != nil {
-			log.Println("[ERROR] Could not replace schedule")
+			log.Error().Msg("Could not replace schedule")
 			return err
 		}
 		return nil
@@ -331,6 +298,34 @@ func (tc *TaskController) insertNewTask(author string, newTask *models.Task) err
 		return err
 	}
 	return nil
+}
+
+// updateTaskActivationByIds searches through the provided task array, either sets ActivatedTime & registers the task (activate)
+// or unsets ActivatedTime & unregisters the task (de-activate / delete)
+// it will sort the tasks afterwards and returns a new array of affected tasks
+func (tc *TaskController) updateTaskActivationByIds(tasks []*models.Task, taskIds []string, activatedTime *time.Time) []*models.Task {
+	taskIDSet := make(map[string]bool)
+	for _, id := range taskIds {
+		taskIDSet[id] = true
+	}
+
+	affectedTasks := make([]*models.Task, 0, len(taskIds))
+	for _, task := range tasks {
+		if taskIDSet[task.Id] {
+			affectedTasks = append(affectedTasks, task)
+			task.ActivatedTime = activatedTime
+
+			if activatedTime == nil {
+				tc.UnregisterTask(task)
+			} else {
+				tc.RegisterTaskSchedule(task)
+			}
+		}
+	}
+
+	models.SortTasks(tasks)
+
+	return affectedTasks
 }
 
 func checkExpiredTasks(tasks []*models.Task) {

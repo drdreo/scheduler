@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"html/template"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -22,7 +22,7 @@ func ParseDuration(input string) (time.Duration, error) {
 
 	if len(matches) != 3 {
 		err := fmt.Errorf("invalid duration format, found <%s>, allowed <every|in|at>", input)
-		log.Print(err)
+		log.Error().Err(err).Msg("")
 		return 0, err
 	}
 
@@ -32,8 +32,8 @@ func ParseDuration(input string) (time.Duration, error) {
 	if command == "at" {
 		targetTime, err := timeUntil(timeValue)
 		if err != nil {
-			err = fmt.Errorf("invalid duration format, found <%s>, allowed <every|in|at>", input)
-			log.Print(err)
+			err = fmt.Errorf("invalid date time format - <%s>", timeValue)
+			log.Error().Err(err).Msg("")
 			return 0, err
 		}
 		return targetTime, nil
@@ -60,7 +60,7 @@ func timeUntil(timeStr string) (time.Duration, error) {
 
 	targetTime, err := time.Parse(time.DateTime, fmt.Sprintf("%d-%d-%d %s:00", year, month, day, timeStr))
 	if err != nil {
-		log.Println("[ERROR] Error parsing time: ", err)
+		log.Error().Err(err).Msg("Error parsing time")
 		return 0, err
 	}
 
@@ -99,7 +99,7 @@ func Uuid() (uuid string) {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
-		log.Println("Error: ", err)
+		log.Error().Err(err).Msg("Failed to create uuid")
 		return
 	}
 
@@ -113,8 +113,7 @@ func RenderTemplate(template *template.Template, tmplName string, data interface
 
 	err := template.ExecuteTemplate(&tplContent, tmplName, data)
 	if err != nil {
-		log.Fatal("err: ", err)
-
+		log.Error().Err(err).Msgf("Failed to render template - %s", tmplName)
 		return "", err
 	}
 

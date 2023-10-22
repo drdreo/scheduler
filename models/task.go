@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
+	"github.com/rs/zerolog/log"
 	"scheduler/utils"
 	"sort"
 	"time"
@@ -38,6 +38,7 @@ type TaskVM struct {
 	IsSoon        bool
 	RemainingTime string
 	ActivatedTime string
+	TargetTime    string
 }
 
 func (task *Task) ToTaskVM() *TaskVM {
@@ -54,6 +55,7 @@ func (task *Task) ToTaskVM() *TaskVM {
 		remainingTime := task.GetRemainingTime()
 		viewTask.RemainingTime = task.GetRemainingTime().String()
 		viewTask.IsSoon = remainingTime.Seconds() < 60
+		viewTask.TargetTime = time.Now().Add(*remainingTime).Format(time.TimeOnly)
 	}
 
 	return viewTask
@@ -161,13 +163,14 @@ func (m TaskDBModel) GetScheduleByAuthor() (*Scheduler, error) {
 				Tasks:  []*Task{},
 			}
 			m.InsertSchedule(&newSchedule)
+			log.Debug().Msgf("Could not find existing schedule, created new one - %s", author)
 			return &newSchedule, nil
 		} else {
-			log.Printf("Something went wrong trying to find scheduler for %s", author)
+			log.Error().Err(err).Msgf("Something went wrong trying to find scheduler for %s", author)
 			return nil, err
 		}
 	}
-	log.Println("Found a document with ", result)
+	log.Debug().Msgf("Found existing schedule - %s", result.Author)
 	return &result, nil
 }
 
@@ -183,8 +186,8 @@ func (m TaskDBModel) InsertSchedule(schedule *Scheduler) (*Scheduler, error) {
 
 	_, err := collection.InsertOne(ctx, schedule)
 	if err != nil {
-		log.Println("[ERROR] Something went wrong trying to insert a task:")
-		panic(err)
+		log.Error().Err(err).Msg("Something went wrong trying to insert new schedule")
+		return nil, err
 	}
 
 	return schedule, nil
@@ -203,7 +206,7 @@ func (m TaskDBModel) ReplaceSchedule(scheduler *Scheduler) error {
 
 	_, err := collection.ReplaceOne(ctx, filter, scheduler)
 	if err != nil {
-		log.Println("Something went wrong trying to update one document:")
+		log.Error().Err(err).Msg("Something went wrong trying to update a schedule")
 		return err
 	}
 
@@ -231,14 +234,14 @@ func (m TaskDBModel) InsertTask(author string, task *Task) (*Scheduler, error) {
 
 	err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedSchedule)
 	if err != nil {
-		log.Println("[ERROR] Something went wrong trying to insert a task:")
+		log.Error().Err(err).Msg("Something went wrong trying to insert a task")
 		return nil, err
 	}
 
 	return updatedSchedule, nil
 }
 
-func (m TaskDBModel) DeleteTasks(tasks []*Task) (*Scheduler, error) {
+func (m TaskDBModel) DeleteTasks(taskIds []string) (*Scheduler, error) {
 	author := "1337"
 	dbName := "SchedulerCluster"
 	collectionName := "schedules"
@@ -249,8 +252,14 @@ func (m TaskDBModel) DeleteTasks(tasks []*Task) (*Scheduler, error) {
 
 	filter := bson.D{{"author", author}}
 
+	// construct pull filters to pull items of the tasks array by ids
+	pullFilters := bson.A{}
+	for _, taskId := range taskIds {
+		pullFilters = append(pullFilters, bson.M{"id": taskId})
+	}
+	pullFilter := bson.M{"$or": pullFilters}
 	update := bson.M{
-		"$pull": bson.M{"tasks": bson.M{"$in": tasks}},
+		"$pull": bson.M{"tasks": pullFilter},
 	}
 
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
@@ -259,7 +268,7 @@ func (m TaskDBModel) DeleteTasks(tasks []*Task) (*Scheduler, error) {
 
 	err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedSchedule)
 	if err != nil {
-		log.Println("Something went wrong trying to update one document:")
+		log.Error().Err(err).Msg("Something went wrong trying to delete tasks")
 		return nil, err
 	}
 

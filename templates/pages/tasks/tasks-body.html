@@ -6,9 +6,15 @@
     <td><input type='checkbox' name='task-ids' value='{{.Id}}'></td>
     <td>
         <div class="task {{ if not .Active}} inactive {{ end }}  {{ if .IsSoon }} soon {{ end }}">
-            <div class="task__schedule">{{.Schedule}}</div>
-            <div class="task__name">{{.Name}}</div>
-            <div class="task__duration">{{ .RemainingTime}}</div>
+            <div class="task__duration">{{ .RemainingTime }}</div>
+            <div class="task__name">{{.Name }}</div>
+            <div class="task__schedule">
+                <span class="material-symbols-outlined icon">schedule</span>
+                {{.Schedule }}
+            </div>
+            {{ if .TargetTime }}
+            <div class="task__time"><span class="material-symbols-outlined icon">alarm</span> {{ .TargetTime }}</div>
+            {{ end }}
         </div>
     </td>
 
@@ -22,7 +28,7 @@
         <span class="material-symbols-outlined">ad_group</span>
 
         {{ else if eq .Trigger "webhook"}}
-        <span class="material-symbols-outlined">phishing</span>
+        <span class="material-symbols-outlined">webhook</span>
         {{ end }}
     </td>
 </tr>

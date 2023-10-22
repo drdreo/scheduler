@@ -1,5 +1,13 @@
 /*
-.htmx-added - can be used to apply on newly added content
+    HTMX specific classes - https://htmx.org/docs/#request-operations
+    .htmx-added - can be used to apply on newly added content
+    .htmx-settling
+    .htmx-swapping
+    .htmx-request
+*/
+
+/*
+    Google Symbols used - https://fonts.google.com/icons
 */
 
 :root {
@@ -111,9 +119,22 @@ body {
     }
 }
 
-.tasks-form {
+.tasks-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tasks-table-wrapper {
     display: flex;
     justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tasks-form {
+
 }
 
 .new-task-form {
@@ -134,10 +155,10 @@ body {
     .task {
         display: flex;
         flex-direction: column;
-        padding: 0.2rem 0.6rem;
+        padding: 0.3rem 0.6rem;
         min-height: 55px;
 
-        font-size: 0.9rem;
+        font-size: 0.7rem;
         border: solid 1px;
         border-radius: var(--radius);
 
@@ -150,17 +171,29 @@ body {
             opacity: 0.3;
         }
 
-        .task__schedule {
+        .icon {
+            font-size: 1rem;
+            margin-right: 0.3rem;
+        }
+
+        .task__duration {
             text-align: end;
-            font-size: 0.7rem;
         }
 
         .task__name {
             font-weight: bold;
+            font-size: 0.9rem;
+            margin: 0.3rem 0;
         }
 
-        .task__duration {
-            font-size: 0.7rem;
+        .task__schedule {
+            display: flex;
+            align-items: center;
+        }
+
+        .task__time {
+            display: flex;
+            align-items: center;
         }
     }
 
