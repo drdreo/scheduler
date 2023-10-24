@@ -266,6 +266,12 @@ func (tc *TaskController) TaskDone(c *gin.Context) {
 	c.String(http.StatusOK, "")
 }
 
+func (tc *TaskController) TaskSnooze(c *gin.Context) {
+	taskId := c.Param("id")
+	log.Debug().Str("taskId", taskId).Msg("Task snoozing")
+
+}
+
 func (tc *TaskController) readSchedulerData() *models.Scheduler {
 	var scheduler models.Scheduler
 

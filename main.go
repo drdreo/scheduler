@@ -67,6 +67,7 @@ func main() {
 	//	taskController.RegisterRefreshInterval()
 
 	router.Static("/static", "./static")
+	router.StaticFile("/alert.worker.js", "./static/js/alert.worker.js")
 	router.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/tasks")
 	})
@@ -79,6 +80,7 @@ func main() {
 	router.PUT("/tasks/deactivate", taskController.TasksDeactivate)
 	router.PUT("/tasks/delete", taskController.TasksDelete)
 	router.PUT("/tasks/:id/done", taskController.TaskDone)
+	router.GET("/tasks/:id/snooze", taskController.TaskSnooze)
 
 	router.GET("/stream", controllers.StreamHeadersMiddleware(), streamController.ServeHTTP(), func(c *gin.Context) {
 		handleStream(c, taskController)

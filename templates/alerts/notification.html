@@ -1,0 +1,25 @@
+{{ define "alert/notification" }}
+<script>
+    navigator.serviceWorker.register('/alert.worker.js');
+
+    function showNotification(title, body, taskId) {
+        navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+                body: body,
+                actions: [
+                    {
+                        action: 'snooze',
+                        title: 'Snooze for 5 minutes'
+                    }
+                ],
+                data: {
+                    taskId: taskId
+                },
+                icon: "./static/notification.png"
+            });
+        });
+    }
+
+</script>
+
+{{ end }}

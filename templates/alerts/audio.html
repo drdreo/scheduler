@@ -3,13 +3,7 @@
 <div class="audio-alert" id="audio-{{.Task.Id}}">
 
     <script>
-        const notification = new Notification('{{.Task.Name}}', {
-            body: "expired - scheduled {{.Task.Schedule}}"
-        });
-        notification.onclick = function () {
-            window.parent.parent.focus();
-            notification.close();
-        };
+        showNotification('{{.Task.Name}}', 'expired - scheduled {{.Task.Schedule}}', {{.Task.Id}});
     </script>
     <audio autoplay>
         <source src="/static/audio/retro-alarm.wav" type="audio/wav">

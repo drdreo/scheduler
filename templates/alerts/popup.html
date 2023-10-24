@@ -1,5 +1,9 @@
 {{ define "alerts/popup" }}
 
+<script>
+    showNotification('{{.Task.Name}}', 'expired - scheduled {{.Task.Schedule}}', {{.Task.Id}});
+</script>
+
 <div class="popup-alert" id="popup-{{.Task.Id}}">
     <div class="wrapper">
         <div class="bell">
