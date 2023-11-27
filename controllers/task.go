@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"html/template"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 	"scheduler/utils"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,6 +24,16 @@ type TaskController struct {
 	sc           *StreamController
 	taskDBM      *models.TaskDBModel
 	taskRegistry map[string]*time.Timer
+}
+
+func LogError(err error, msg string, ctx *gin.Context) {
+	log.Error().Err(err).Msg(msg)
+	if hub := sentrygin.GetHubFromContext(ctx); hub != nil {
+		hub.WithScope(func(scope *sentry.Scope) {
+			scope.SetExtra("Original Error", fmt.Sprintf("%s", err))
+			hub.CaptureMessage(msg)
+		})
+	}
 }
 
 func NewTaskController(streamController *StreamController, template *template.Template, taskDBM *models.TaskDBModel) *TaskController {
@@ -61,7 +74,7 @@ func (tc *TaskController) NewTask(c *gin.Context) {
 
 	_, err := utils.ParseDuration(formData.Schedule)
 	if err != nil {
-		log.Warn().Str("schedule", formData.Schedule).Msg("Failed to parse schedule")
+		LogError(err, "Failed to parse schedule", c)
 		c.HTML(http.StatusOK, "response/new-task.html", gin.H{"Error": "FAILED TO PARSE SCHEDULE"})
 		return
 	}
@@ -203,7 +216,7 @@ func (tc *TaskController) TasksActivate(c *gin.Context) {
 
 	err := tc.writeSchedulerData(scheduler)
 	if err != nil {
-		log.Fatal().Msg("Could not write scheduler data")
+		LogError(err, "Could not write scheduler data", c)
 	}
 
 	viewTasks := models.GetViewTasks(scheduler.Tasks)
@@ -224,7 +237,7 @@ func (tc *TaskController) TasksDeactivate(c *gin.Context) {
 
 	err := tc.writeSchedulerData(scheduler)
 	if err != nil {
-		log.Warn().Msg("Warning: Could not write scheduler data")
+		LogError(err, "Could not write scheduler data", c)
 	}
 
 	viewTasks := models.GetViewTasks(scheduler.Tasks)
@@ -245,7 +258,10 @@ func (tc *TaskController) TasksDelete(c *gin.Context) {
 
 	tc.updateTaskActivationByIds(scheduler.Tasks, formData.TaskIds, nil)
 
-	updatedSchedule, _ := tc.taskDBM.DeleteTasks(formData.TaskIds)
+	updatedSchedule, err := tc.taskDBM.DeleteTasks(formData.TaskIds)
+	if err != nil {
+		LogError(err, "Could not write scheduler data", c)
+	}
 	log.Info().Strs("taskIds", formData.TaskIds).Msg("Deleted tasks")
 
 	viewTasks := models.GetViewTasks(updatedSchedule.Tasks)
@@ -295,7 +311,6 @@ func (tc *TaskController) writeSchedulerData(scheduler *models.Scheduler) error 
 	if useDB {
 		err := tc.taskDBM.ReplaceSchedule(scheduler)
 		if err != nil {
-			log.Error().Msg("Could not replace schedule")
 			return err
 		}
 		return nil

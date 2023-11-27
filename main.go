@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -30,6 +33,71 @@ func getPort() string {
 	return port
 }
 
+func initSentry() {
+	enabled := os.Getenv("SENTRY_ENABLED")
+	if enabled != "true" {
+		return
+	}
+
+	log.Info().Msg("initializing Sentry")
+
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:              os.Getenv("SENTRY_DSN"),
+		Environment:      os.Getenv("APP_ENV"),
+		EnableTracing:    true,
+		TracesSampleRate: 1.0,
+	}); err != nil {
+		log.Printf("Sentry initialization failed: %v", err)
+	}
+}
+
+type Templates struct {
+	templates *template.Template
+	funcMap   *template.FuncMap
+}
+
+func GetTemplateFiles(directory string) []string {
+	var files []string
+
+	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == ".html" {
+			files = append(files, path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Error().Err(err).Msg("Error walking directory")
+	}
+
+	log.Debug().Msg("Found templates:")
+	for _, file := range files {
+		log.Debug().Str("file", file).Msg(" - ")
+	}
+
+	return files
+}
+
+func NewTemplates() (*Templates, error) {
+	myFuncMap := template.FuncMap{
+		"formatAsDate": utils.FormatAsDate,
+	}
+
+	tplPaths := GetTemplateFiles("templates")
+	tpls, err := template.New("any").Funcs(myFuncMap).ParseFiles(tplPaths...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Templates{
+		funcMap:   &myFuncMap,
+		templates: tpls,
+	}, nil
+}
+
 func main() {
 	log.Info().Msg("main running... ")
 
@@ -38,16 +106,19 @@ func main() {
 
 	loadEnv()
 
-	router := gin.Default()
-	templates := getTemplateFiles("templates")
+	initSentry()
 
-	myFuncMap := template.FuncMap{
-		"formatAsDate": utils.FormatAsDate,
+	app := gin.Default()
+
+	tpls, err := NewTemplates()
+	if err != nil {
+		log.Error().Err(err).Msg("Error initializing templates")
 	}
-	router.SetFuncMap(myFuncMap)
-	tpl, _ := template.New("any").Funcs(myFuncMap).ParseFiles(templates...)
 
-	router.SetHTMLTemplate(tpl)
+	app.SetFuncMap(*tpls.funcMap)
+	app.SetHTMLTemplate(tpls.templates)
+
+	app.Use(sentrygin.New(sentrygin.Options{}))
 
 	client := connectToMongo()
 	// Defer the disconnection of the client
@@ -62,32 +133,32 @@ func main() {
 
 	streamController := controllers.NewStreamController()
 
-	taskController := controllers.NewTaskController(streamController, tpl, &taskDB)
+	taskController := controllers.NewTaskController(streamController, tpls.templates, &taskDB)
 	taskController.RegisterAllTasksSchedules()
 	//	taskController.RegisterRefreshInterval()
 
-	router.Static("/static", "./static")
-	router.StaticFile("/alert.worker.js", "./static/js/alert.worker.js")
-	router.GET("/", func(c *gin.Context) {
+	app.Static("/static", "./static")
+	app.StaticFile("/alert.worker.js", "./static/js/alert.worker.js")
+	app.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/tasks")
 	})
 
-	router.GET("/tasks", taskController.GetTasks)
-	router.GET("/tasks/new", taskController.GetNewTaskForm) // FOR HTMX
-	router.POST("/tasks/new", taskController.NewTask)
-	//	router.GET("/tasks-update", taskController.TasksUpdate) // FOR HTMX
-	router.PUT("/tasks/activate", taskController.TasksActivate)
-	router.PUT("/tasks/deactivate", taskController.TasksDeactivate)
-	router.PUT("/tasks/delete", taskController.TasksDelete)
-	router.PUT("/tasks/:id/done", taskController.TaskDone)
-	router.GET("/tasks/:id/snooze", taskController.TaskSnooze)
+	app.GET("/tasks", taskController.GetTasks)
+	app.GET("/tasks/new", taskController.GetNewTaskForm) // FOR HTMX
+	app.POST("/tasks/new", taskController.NewTask)
+	//	app.GET("/tasks-update", taskController.TasksUpdate) // FOR HTMX
+	app.PUT("/tasks/activate", taskController.TasksActivate)
+	app.PUT("/tasks/deactivate", taskController.TasksDeactivate)
+	app.PUT("/tasks/delete", taskController.TasksDelete)
+	app.PUT("/tasks/:id/done", taskController.TaskDone)
+	app.GET("/tasks/:id/snooze", taskController.TaskSnooze)
 
-	router.GET("/stream", controllers.StreamHeadersMiddleware(), streamController.ServeHTTP(), func(c *gin.Context) {
+	app.GET("/stream", controllers.StreamHeadersMiddleware(), streamController.ServeHTTP(), func(c *gin.Context) {
 		handleStream(c, taskController)
 	})
 
-	router.GET("/data", dataHandler)
-	err := router.Run(getPort())
+	app.GET("/data", dataHandler)
+	err := app.Run(getPort())
 	if err != nil {
 		log.Panic().Err(err).Msgf("Could not run app on port: %d", getPort())
 	}
@@ -155,31 +226,6 @@ func handleTaskAlertEvent(c *gin.Context, event *controllers.Event, taskControll
 func handleTasksUpdateEvent(c *gin.Context, taskController *controllers.TaskController) {
 	taskUpdateTpl := taskController.GetTasksUpdate()
 	c.SSEvent("tasks-update", taskUpdateTpl)
-}
-
-func getTemplateFiles(directory string) []string {
-	var files []string
-
-	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && filepath.Ext(path) == ".html" {
-			files = append(files, path)
-		}
-		return nil
-	})
-
-	if err != nil {
-		log.Error().Err(err).Msg("Error walking directory")
-	}
-
-	log.Debug().Msg("Found templates:")
-	for _, file := range files {
-		log.Debug().Str("file", file).Msg(" - ")
-	}
-
-	return files
 }
 
 func dataHandler(c *gin.Context) {

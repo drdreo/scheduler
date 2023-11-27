@@ -21,8 +21,7 @@ func ParseDuration(input string) (time.Duration, error) {
 	matches := pattern.FindStringSubmatch(strings.ToLower(input))
 
 	if len(matches) != 3 {
-		err := fmt.Errorf("invalid duration format, found <%s>, allowed <every|in|at>", input)
-		log.Error().Err(err).Msg("")
+		err := fmt.Errorf("invalid duration format, found <%s>", input)
 		return 0, err
 	}
 
@@ -33,7 +32,6 @@ func ParseDuration(input string) (time.Duration, error) {
 		targetTime, err := timeUntil(timeValue)
 		if err != nil {
 			err = fmt.Errorf("invalid date time format - <%s>", timeValue)
-			log.Error().Err(err).Msg("")
 			return 0, err
 		}
 		return targetTime, nil
