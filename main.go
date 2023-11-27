@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
@@ -158,7 +157,7 @@ func main() {
 	})
 
 	app.GET("/data", dataHandler)
-	err := app.Run(getPort())
+	err = app.Run(getPort())
 	if err != nil {
 		log.Panic().Err(err).Msgf("Could not run app on port: %d", getPort())
 	}
